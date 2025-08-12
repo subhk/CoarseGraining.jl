@@ -192,4 +192,9 @@ end
     # For ℓ=16, f = 2/16 = 0.125
     f_nyq = coarse_grain_butterworth_nyquist(f, 0.125; order=2)
     @test isapprox(mean(abs.(f_nyq.data .- f_low.data)), 0.0; atol=1e-8)
+    # DSP-based variant: ensure variance reduction and shape
+    fdsp = coarse_grain_butterworth_dsp(f, kc; order=2)
+    @test size(fdsp.data) == size(f.data)
+    var_dsp = mean((fdsp.data .- mean(fdsp.data)).^2)
+    @test var_dsp < var_orig
 end

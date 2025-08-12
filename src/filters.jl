@@ -1,4 +1,5 @@
 using ..CoarseGraining: Grid, Field, Kernel
+using DSP
 import Base.Threads
 
 export coarse_grain, coarse_grain_fft, coarse_grain_gaussian_separable, select_tile,
@@ -13,6 +14,100 @@ function padidx(i, n, periodic)
         return j
     else
         return clamp(i, 1, n)
+    end
+end
+
+"""
+    coarse_grain_butterworth_dsp(field, kc; order=2, zero_phase=true)
+
+Butterworth low-pass using DSP.jl digital IIR filtering applied separably along x and y.
+`kc` may be scalar (isotropic cutoff) or `(kcx, kcy)` in radians per length.
+Normalized cutoff per axis is `ωc = kc*dx` and `ωc/π` for DSP.
+Use `zero_phase=true` to apply filtfilt (forward-backward) and avoid phase shift.
+Assumes periodic-like data or long signals (IIR edge effects may appear).
+"""
+function coarse_grain_butterworth_dsp(field::Field{T,G}, kc::Union{Real,Tuple{<:Real,<:Real}}; order::Integer=2, zero_phase::Bool=true) where {T<:Real,G}
+    @assert order >= 1
+    A = Float64.(field.data)
+    ny, nx = size(A)
+    dx = field.grid.dx; dy = field.grid.dy
+    if kc isa Tuple
+        kcx, kcy = kc
+    else
+        kcx = ky = Float64(kc)
+        kcy = kcx
+    end
+    wx = clamp(kcx*dx/π, 0.0, 1.0)
+    wy = clamp(kcy*dy/π, 0.0, 1.0)
+    fx = digitalfilter(Lowpass(wx), Butterworth(order))
+    fy = digitalfilter(Lowpass(wy), Butterworth(order))
+    if zero_phase
+        B = DSP.filtfilt(fx, A; dims=2)
+        C = DSP.filtfilt(fy, B; dims=1)
+    else
+        B = DSP.filt(fx, A; dims=2)
+        C = DSP.filt(fy, B; dims=1)
+    end
+    return Field(T.(C), field.grid)
+end
+
+"""
+    coarse_grain_butterworth_length_dsp(field, ℓc; order=2, zero_phase=true)
+
+DSP-based Butterworth specifying cutoff length(s) ℓ.
+"""
+function coarse_grain_butterworth_length_dsp(field::Field{T,G}, ℓc::Union{Real,Tuple{<:Real,<:Real}}; order::Integer=2, zero_phase::Bool=true) where {T<:Real,G}
+    if ℓc isa Tuple
+        ℓx, ℓy = ℓc
+        @assert ℓx > 0 && ℓy > 0
+        return coarse_grain_butterworth_dsp(field, (2π/ℓx, 2π/ℓy); order=order, zero_phase=zero_phase)
+    else
+        @assert ℓc > 0
+        return coarse_grain_butterworth_dsp(field, 2π/ℓc; order=order, zero_phase=zero_phase)
+    end
+end
+
+function coarse_grain_butterworth_cycles_dsp(field::Field{T,G}, cycles::Union{Real,Tuple{<:Real,<:Real}}; order::Integer=2, zero_phase::Bool=true) where {T<:Real,G}
+    nx = field.grid.nx; ny = field.grid.ny
+    dx = field.grid.dx; dy = field.grid.dy
+    if cycles isa Tuple
+        cx, cy = cycles
+        @assert cx >= 0 && cy >= 0
+        kcx = 2π*cx/(nx*dx)
+        kcy = 2π*cy/(ny*dy)
+        return coarse_grain_butterworth_dsp(field, (kcx, kcy); order=order, zero_phase=zero_phase)
+    else
+        c = cycles
+        @assert c >= 0
+        kcx = 2π*c/(nx*dx)
+        kcy = 2π*c/(ny*dy)
+        return coarse_grain_butterworth_dsp(field, (kcx, kcy); order=order, zero_phase=zero_phase)
+    end
+end
+
+function coarse_grain_butterworth_cells_dsp(field::Field{T,G}, cells::Union{Real,Tuple{<:Real,<:Real}}; order::Integer=2, zero_phase::Bool=true) where {T<:Real,G}
+    dx = field.grid.dx; dy = field.grid.dy
+    if cells isa Tuple
+        cx, cy = cells
+        @assert cx > 0 && cy > 0
+        return coarse_grain_butterworth_length_dsp(field, (cx*dx, cy*dy); order=order, zero_phase=zero_phase)
+    else
+        c = cells
+        @assert c > 0
+        return coarse_grain_butterworth_length_dsp(field, c*dx; order=order, zero_phase=zero_phase)
+    end
+end
+
+function coarse_grain_butterworth_nyquist_dsp(field::Field{T,G}, frac::Union{Real,Tuple{<:Real,<:Real}}; order::Integer=2, zero_phase::Bool=true) where {T<:Real,G}
+    dx = field.grid.dx; dy = field.grid.dy
+    if frac isa Tuple
+        fx, fy = frac
+        @assert 0 < fx <= 1 && 0 < fy <= 1
+        return coarse_grain_butterworth_dsp(field, (fx*(π/dx), fy*(π/dy)); order=order, zero_phase=zero_phase)
+    else
+        f = frac
+        @assert 0 < f <= 1
+        return coarse_grain_butterworth_dsp(field, (f*(π/dx), f*(π/dy)); order=order, zero_phase=zero_phase)
     end
 end
 

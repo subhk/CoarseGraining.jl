@@ -13,6 +13,7 @@ Features implemented:
   - Butterworth by length: `coarse_grain_butterworth_length(field, ℓc; order=2)`, where `ℓc` is cutoff length (or `(ℓx,ℓy)`).
   - Butterworth by cycles-per-domain: `coarse_grain_butterworth_cycles(field, cycles; order=2)`, where `cycles` is scalar or `(cx,cy)`.
   - Butterworth by Nyquist fraction: `coarse_grain_butterworth_nyquist(field, frac; order=2)`, where `frac` is scalar or `(fx,fy)` in (0,1].
+  - DSP-based Butterworth (IIR, zero-phase): `coarse_grain_butterworth_dsp(field, kc; order=2, zero_phase=true)` and wrappers `*_length_dsp`, `*_cycles_dsp`, `*_cells_dsp`, `*_nyquist_dsp`.
 - Basic differential operators: `gradient`, `divergence`, `vorticity` (Cartesian).
 - NetCDF IO helpers: `load_netcdf_var`, `write_netcdf_field`.
   - Vector IO: `load_vector_vars`, `write_vector_vars`.
