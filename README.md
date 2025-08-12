@@ -14,12 +14,19 @@ Features implemented:
   - Butterworth by cycles-per-domain: `coarse_grain_butterworth_cycles(field, cycles; order=2)`, where `cycles` is scalar or `(cx,cy)`.
   - Butterworth by Nyquist fraction: `coarse_grain_butterworth_nyquist(field, frac; order=2)`, where `frac` is scalar or `(fx,fy)` in (0,1].
   - DSP-based Butterworth (IIR, zero-phase): `coarse_grain_butterworth_dsp(field, kc; order=2, zero_phase=true)` and wrappers `*_length_dsp`, `*_cycles_dsp`, `*_cells_dsp`, `*_nyquist_dsp`.
+  - Mask-aware convolution: `coarse_grain_masked(field, kernel, mask; normalize=true, fill_value=NaN)`.
 - Basic differential operators: `gradient`, `divergence`, `vorticity` (Cartesian).
 - NetCDF IO helpers: `load_netcdf_var`, `write_netcdf_field`.
   - Vector IO: `load_vector_vars`, `write_vector_vars`.
   - Region IO: `load_region_masks`, `write_region_stats`, `write_regions_file`.
   - One-shot: `write_region_stats_and_masks(field, regions, stats_path; masks_path, lon, lat)`.
   - With attributes: `write_region_stats_with_attrs`, `write_region_stats_and_masks_with_attrs`.
+  - Model adapters: `load_model_var(path; model=:auto, varname, at=:rho, t=1, z=1, curvilinear=false)` loads 2D fields from CROCO/ROMS/MITgcm NetCDF and returns a `Field` plus lon/lat metadata.
+    - `detect_model(ds)` to infer model type; metadata includes `:lon`, `:lat`, and optional `:mask`.
+    - `average_to_rho(u, v)` to average C-grid velocities to rho points (ROMS/CROCO).
+    - `average_to_tracer_mitgcm(U, V)` to average MITgcm U,V to tracer centers.
+    - `curvilinear=true` returns a `CurvilinearGrid` with per-cell `dx,dy` and detected periodicity; use `gradient_curvilinear` for metric-aware finite differences.
+  - Regridding helper: `regrid_index_bilinear(field, nx, ny)` to resample to uniform size for FFT workflows (index-space bilinear; approximate).
 - MPI utilities: `mpi_init`, `parallel_coarse_grain` for domain-decomposed filtering along x; gather/compute/scatter paths for FFT filtering (`parallel_coarse_grain_fft`) and Helmholtz-Hodge (`parallel_helmholtz_hodge`).
   - Also: `parallel_coarse_grain_fft_distributed` for equal-slab, periodic, truly distributed FFT filtering (requires `nx % nprocs == 0` and `ny % nprocs == 0`).
   - Real-space MPI supports a threaded local filter via `parallel_coarse_grain(...; threaded=true)`.
