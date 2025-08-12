@@ -10,7 +10,7 @@ export helmholtz_hodge
 Returns divergence-free part (udf, vdf), potential part (upot, vpot), and
 scalar potentials ϕ (potential) and ψ (streamfunction).
 """
-function helmholtz_hodge(u::Field{T}, v::Field{T}) where {T<:Real}
+function helmholtz_hodge(u::Field{T,G}, v::Field{T,G}) where {T<:Real,G}
     grid = u.grid
     @assert grid isa Grid "helmholtz_hodge currently supports Cartesian Grid"
     @assert size(u.data) == size(v.data)
@@ -53,4 +53,3 @@ function helmholtz_hodge(u::Field{T}, v::Field{T}) where {T<:Real}
 
     return Field(T.(udf), grid), Field(T.(vdf), grid), Field(T.(upot), grid), Field(T.(vpot), grid), Field(T.(ϕ), grid), Field(T.(ψ), grid)
 end
-

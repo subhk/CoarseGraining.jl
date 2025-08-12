@@ -13,7 +13,8 @@ export Grid, Field, Kernel,
        mpi_init, mpi_finalize, mpi_enabled, mpi_rank, mpi_size,
        parallel_coarse_grain, parallel_coarse_grain_fft, parallel_helmholtz_hodge,
        SphericalGrid, gradient_sphere, vorticity_sphere, divergence_sphere, vel_spher_to_cart, vel_cart_to_spher,
-       okuboweiss
+       helmholtz_hodge_sphere,
+       okuboweiss, compute_pi
 
 include("types.jl")
 include("kernels.jl")

@@ -11,7 +11,8 @@ Features implemented:
 - MPI utilities: `mpi_init`, `parallel_coarse_grain` for domain-decomposed filtering along x; gather/compute/scatter paths for FFT filtering (`parallel_coarse_grain_fft`) and Helmholtz-Hodge (`parallel_helmholtz_hodge`).
   - Also: `parallel_coarse_grain_fft_distributed` for equal-slab, periodic, truly distributed FFT filtering (requires `nx % nprocs == 0` and `ny % nprocs == 0`).
 - Spherical grid support: `SphericalGrid`, `gradient_sphere`, `vorticity_sphere`, and velocity conversions.
-- Diagnostics: `okuboweiss`.
+- Spherical Helmholtz–Hodge: `helmholtz_hodge_sphere` (FFT-in-lon + FD-in-lat baseline).
+- Diagnostics: `okuboweiss`, `compute_pi` (Leonard transfer).
 
 Quick start:
 ```
@@ -69,6 +70,8 @@ Helmholtz–Hodge (periodic Cartesian):
 See examples:
 - `examples/coarse_grain_helmholtz.jl`
 - `examples/helmholtz_workflow.jl`
+- `examples/coarse_grain_scalars.jl`
+- `examples/Pi_helm_breakdown.jl`
 g = Grid(128, 128, 1.0, 1.0, true, true)
 u = Field(randn(g.ny, g.nx), g)
 v = Field(randn(g.ny, g.nx), g)

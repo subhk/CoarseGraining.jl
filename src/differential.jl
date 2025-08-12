@@ -2,7 +2,7 @@ using ..CoarseGraining: Grid, Field
 
 export gradient, divergence, vorticity
 
-function gradient(field::Field{T}) where {T<:Real}
+function gradient(field::Field{T,G}) where {T<:Real,G}
     A = field.data
     ny, nx = size(A)
     dx, dy = field.grid.dx, field.grid.dy
@@ -27,17 +27,16 @@ function gradient(field::Field{T}) where {T<:Real}
     return Field(∂x, field.grid), Field(∂y, field.grid)
 end
 
-function divergence(u::Field{T}, v::Field{T}) where {T<:Real}
+function divergence(u::Field{T,G}, v::Field{T,G}) where {T<:Real,G}
     (ux, uy) = gradient(u)
     (vx, vy) = gradient(v)
     div = ux.data .+ vy.data
     return Field(div, u.grid)
 end
 
-function vorticity(u::Field{T}, v::Field{T}) where {T<:Real}
+function vorticity(u::Field{T,G}, v::Field{T,G}) where {T<:Real,G}
     (ux, uy) = gradient(u)
     (vx, vy) = gradient(v)
     ζ = vx.data .- uy.data
     return Field(ζ, u.grid)
 end
-
