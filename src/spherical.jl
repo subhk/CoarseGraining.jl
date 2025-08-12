@@ -2,7 +2,8 @@ using ..CoarseGraining: Field, SphericalGrid
 using FFTW
 using LinearAlgebra
 
-export gradient_sphere, vorticity_sphere, divergence_sphere, vel_spher_to_cart, vel_cart_to_spher
+export gradient_sphere, vorticity_sphere, divergence_sphere, vel_spher_to_cart, vel_cart_to_spher,
+       helmholtz_hodge_sphere, poisson_sphere_solve
 
 function gradient_sphere(f::Field{T,G}) where {T<:Real,G}
     grid = f.grid
