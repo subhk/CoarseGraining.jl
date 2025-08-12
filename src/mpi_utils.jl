@@ -270,41 +270,49 @@ function parallel_coarse_grain_fft_distributed(field::Union{Field,Nothing}, σx:
     if !px || !py
         error("parallel_coarse_grain_fft_distributed requires periodic boundaries in both x and y")
     end
-    if nx % p != 0 || ny % p != 0
-        error("nx and ny must be divisible by number of ranks (nx=$(nx), ny=$(ny), ranks=$(p))")
-    end
-    nx_loc = nx ÷ p
-    ny_loc = ny ÷ p
+    # Decompositions (possibly non-uniform)
+    xcounts, xoffsets = decompose_x(nx, p)
+    ycounts, yoffsets = decompose_x(ny, p)
+    nx_loc = xcounts[r+1]
+    ny_loc = ycounts[r+1]
 
-    # Scatter equal x-slabs
+    # Scatter x-slabs
     A_loc = Array{Float64,2}(undef, ny, nx_loc)
     if r == 0
         A = Float64.(field.data)
     else
         A = Array{Float64,2}(undef, 0, 0)
     end
-    sendcounts = fill(ny*nx_loc, p)
-    displs = collect(0:ny*nx_loc:(p-1)*ny*nx_loc)
+    sendcounts = [xcounts[i]*ny for i in 1:p]
+    displs = [xoffsets[i]*ny for i in 1:p]
     MPI.Scatterv!(A, A_loc, 0, comm; counts=sendcounts, displs=displs)
 
     # 1) FFT along y locally
     F_y = fft(A_loc, 1)
 
-    # 2) Alltoall to redistribute into y-slabs
-    sendbuf = Vector{ComplexF64}(undef, p*ny_loc*nx_loc)
-    for q in 0:p-1
-        rstart = q*ny_loc + 1
-        rend = (q+1)*ny_loc
-        block = @view F_y[rstart:rend, 1:nx_loc]
-        copyto!(sendbuf, q*ny_loc*nx_loc + 1, vec(block), 1, ny_loc*nx_loc)
+    # 2) Alltoallv to y-slabs
+    # Pack send buffer as concatenation over dest q of rows yoffsets[q]..yoffsets[q]+ycounts[q]-1, all local columns
+    sendcounts_v = [ycounts[q]*nx_loc for q in 1:p]
+    sdispls_v = cumsum([0; sendcounts_v[1:end-1]])
+    sendbuf = Vector{ComplexF64}(undef, sum(sendcounts_v))
+    for q in 1:p
+        r0 = yoffsets[q] + 1
+        r1 = yoffsets[q] + ycounts[q]
+        block = @view F_y[r0:r1, 1:nx_loc]
+        copyto!(sendbuf, sdispls_v[q] + 1, vec(block), 1, sendcounts_v[q])
     end
-    recvbuf = similar(sendbuf)
-    MPI.Alltoall!(sendbuf, recvbuf, comm)
+    # Prepare recv buffer sized ny_loc * nx (sum over sources of ny_loc*xcounts[src])
+    recvcounts_v = [ny_loc * xcounts[s] for s in 1:p]
+    rdispls_v = cumsum([0; recvcounts_v[1:end-1]])
+    recvbuf = Vector{ComplexF64}(undef, sum(recvcounts_v))
+    MPI.Alltoallv!(sendbuf, sendcounts_v, sdispls_v, recvbuf, recvcounts_v, rdispls_v, comm)
     # Reassemble y-slab (ny_loc x nx)
     Fy_yslab = Array{ComplexF64,2}(undef, ny_loc, nx)
-    for q in 0:p-1
-        block = reshape(@view(recvbuf, q*ny_loc*nx_loc+1:(q+1)*ny_loc*nx_loc), ny_loc, nx_loc)
-        Fy_yslab[:, q*nx_loc+1:(q+1)*nx_loc] .= block
+    for s in 1:p
+        nx_s = xcounts[s]
+        offx = xoffsets[s] + 1
+        block = reshape(@view(recvbuf, rdispls_v[s]+1 : rdispls_v[s]+recvcounts_v[s]), ny_loc, nx_s)
+        Fy_yslab[:, offx:offx+nx_s-1] .= block
     end
 
     # 3) FFT along x on y-slabs
@@ -313,30 +321,36 @@ function parallel_coarse_grain_fft_distributed(field::Union{Field,Nothing}, σx:
     # 4) Apply Gaussian transfer function G(kx, ky)
     kx = [0:floor(Int,nx/2); ceil(Int,-nx/2)+1:-1] .* (2π/(nx*dx))
     ky = [0:floor(Int,ny/2); ceil(Int,-ny/2)+1:-1] .* (2π/(ny*dy))
-    ky_loc = ky[r*ny_loc+1:(r+1)*ny_loc]
+    ky_loc_vec = ky[yoffsets[r+1]+1 : yoffsets[r+1]+ny_loc]
     KX = reshape(kx, 1, :)
-    KY = reshape(ky_loc, :, 1)
+    KY = reshape(ky_loc_vec, :, 1)
     G = @. exp(-0.5*((σx^2)*(KX^2) + (σy^2)*(KY^2)))
     Ffilt = Fyx .* G
 
     # 5) Inverse FFT along x
     fy_yslab = ifft(Ffilt, 2)
 
-    # 6) Alltoall back to x-slabs (inverse of step 2)
-    sendbuf2 = Vector{ComplexF64}(undef, p*ny_loc*nx_loc)
-    for q in 0:p-1
-        cstart = q*nx_loc + 1
-        cend = (q+1)*nx_loc
-        block = @view fy_yslab[:, cstart:cend]
-        copyto!(sendbuf2, q*ny_loc*nx_loc + 1, vec(block), 1, ny_loc*nx_loc)
+    # 6) Alltoallv back to x-slabs
+    sendcounts2 = [ny_loc * xcounts[q] for q in 1:p]
+    sdispls2 = cumsum([0; sendcounts2[1:end-1]])
+    sendbuf2 = Vector{ComplexF64}(undef, sum(sendcounts2))
+    for q in 1:p
+        cx0 = xoffsets[q] + 1
+        cx1 = xoffsets[q] + xcounts[q]
+        block = @view fy_yslab[:, cx0:cx1]
+        copyto!(sendbuf2, sdispls2[q] + 1, vec(block), 1, sendcounts2[q])
     end
-    recvbuf2 = similar(sendbuf2)
-    MPI.Alltoall!(sendbuf2, recvbuf2, comm)
+    recvcounts2 = [ycounts[s] * nx_loc for s in 1:p]
+    rdispls2 = cumsum([0; recvcounts2[1:end-1]])
+    recvbuf2 = Vector{ComplexF64}(undef, sum(recvcounts2))
+    MPI.Alltoallv!(sendbuf2, sendcounts2, sdispls2, recvbuf2, recvcounts2, rdispls2, comm)
     # Reassemble x-slab (ny x nx_loc)
     fy_xslab = Array{ComplexF64,2}(undef, ny, nx_loc)
-    for q in 0:p-1
-        block = reshape(@view(recvbuf2, q*ny_loc*nx_loc+1:(q+1)*ny_loc*nx_loc), ny_loc, nx_loc)
-        fy_xslab[q*ny_loc+1:(q+1)*ny_loc, :] .= block
+    for s in 1:p
+        ny_sloc = ycounts[s]
+        offy = yoffsets[s] + 1
+        block = reshape(@view(recvbuf2, rdispls2[s]+1 : rdispls2[s]+recvcounts2[s]), ny_sloc, nx_loc)
+        fy_xslab[offy:offy+ny_sloc-1, :] .= block
     end
 
     # 7) Inverse FFT along y locally

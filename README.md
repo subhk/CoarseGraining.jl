@@ -5,7 +5,7 @@ Julia implementation scaffolding for FlowSieve-style coarse graining of turbulen
 Features implemented:
 - Core types: `Grid`, `Field`, `Kernel`.
 - Real-space filters: Gaussian and boxcar kernels via `coarse_grain`.
-- FFT-based Gaussian filtering via `coarse_grain_fft` (periodic).
+- FFT-based Gaussian filtering via `coarse_grain_fft` (periodic) and `coarse_grain_gaussian_separable` (fast separable real-space).
 - Basic differential operators: `gradient`, `divergence`, `vorticity` (Cartesian).
 - NetCDF IO helpers: `load_netcdf_var`, `write_netcdf_field`.
 - MPI utilities: `mpi_init`, `parallel_coarse_grain` for domain-decomposed filtering along x; gather/compute/scatter paths for FFT filtering (`parallel_coarse_grain_fft`) and Helmholtz-Hodge (`parallel_helmholtz_hodge`).
@@ -13,6 +13,7 @@ Features implemented:
 - Spherical grid support: `SphericalGrid`, `gradient_sphere`, `vorticity_sphere`, and velocity conversions.
 - Spherical Helmholtz–Hodge: `helmholtz_hodge_sphere` (FFT-in-lon + FD-in-lat baseline).
 - Diagnostics: `okuboweiss`, `compute_pi` (Leonard transfer).
+- Extra diagnostics: `ke_spectrum_isotropic`, `zonal_mean_std`, `region_mean_std`.
 
 Quick start:
 ```
@@ -53,6 +54,10 @@ else
 end
 CoarseGraining.mpi_finalize()
 ```
+
+MPI smoke tests:
+- Real-space filter: `mpiexec -n 3 julia --project test_mpi/runtest_filter_realspace.jl`
+- Distributed FFT: `mpiexec -n 4 julia --project test_mpi/runtest_fft_distributed.jl`
 
 Spherical gradients:
 ```

@@ -3,7 +3,7 @@ module IO
 using NCDatasets
 using ..CoarseGraining: Field, Grid
 
-export load_netcdf_var, write_netcdf_field
+export load_netcdf_var, write_netcdf_field, read_attr, write_attr
 
 function load_netcdf_var(path::AbstractString, varname::AbstractString;
                          xdim::AbstractString="x", ydim::AbstractString="y",
@@ -27,7 +27,28 @@ function write_netcdf_field(path::AbstractString, varname::AbstractString, field
     return path
 end
 
+function read_attr(path::AbstractString, name::AbstractString; varname::Union{String,Nothing}=nothing)
+    ds = NCDataset(path)
+    val = if varname === nothing
+        attget(ds, name)
+    else
+        attget(ds[varname], name)
+    end
+    close(ds)
+    return val
+end
+
+function write_attr(path::AbstractString, name::AbstractString, value; varname::Union{String,Nothing}=nothing)
+    ds = NCDataset(path, "a")
+    if varname === nothing
+        attput(ds, name, value)
+    else
+        attput(ds[varname], name, value)
+    end
+    close(ds)
+    return nothing
+end
+
 end # module IO
 
-using .IO: load_netcdf_var, write_netcdf_field
-
+using .IO: load_netcdf_var, write_netcdf_field, read_attr, write_attr
