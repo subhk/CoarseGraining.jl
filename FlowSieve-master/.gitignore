@@ -1,0 +1,36 @@
+# Compiler products
+*.o
+*.x
+*dSYM
+
+# Don't keep data files
+*.nc
+
+# Don't keep image files
+#*.png
+*.pdf
+
+# Don't keep log files
+*.err
+*.log
+
+# Some nonesense that comes up on OS X
+*.DS_Store
+
+# Ignore the documentation
+docs/build/
+
+# Python 'compile' products
+*__pycache__*
+
+# Ignore the *local* system.mk. The Systems directory, however, is included.
+system.mk
+
+# use .tmp to ignore my own temporary files
+*.tmp
+
+# use .dev to ignore my own backup development files
+*.dev
+
+# Ignore any jupyter notebook stuff
+.ipynb_checkpoints/
