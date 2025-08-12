@@ -13,7 +13,7 @@ function padidx(i, n, periodic)
     end
 end
 
-function coarse_grain(field::Field{T}, kernel::Kernel) where {T<:Real}
+function coarse_grain(field::Field{T,G}, kernel::Kernel) where {T<:Real,G}
     A = field.data
     ny, nx = size(A)
     K = kernel.weights
@@ -35,7 +35,7 @@ function coarse_grain(field::Field{T}, kernel::Kernel) where {T<:Real}
     return Field(out, field.grid)
 end
 
-function coarse_grain_fft(field::Field{T}, σx::Real, σy::Real) where {T<:Real}
+function coarse_grain_fft(field::Field{T,G}, σx::Real, σy::Real) where {T<:Real,G}
     # Gaussian filter via FFT assuming periodic boundaries.
     A = Float64.(field.data)
     ny, nx = size(A)
