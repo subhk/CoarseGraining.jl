@@ -90,7 +90,7 @@ function strip_halos(A::Array{T,2}, halosize::Int) where {T}
     return @view A[:, (1+halosize):(nx-halosize)]
 end
 
-function parallel_coarse_grain(field::Union{Field,Nothing}, kernel::Kernel; halosize::Int=max(kernel.radius_x, kernel.radius_y))
+function parallel_coarse_grain(field::Union{Field,Nothing}, kernel::Kernel; halosize::Int=max(kernel.radius_x, kernel.radius_y), threaded::Bool=true)
     mpi_init()
     comm = MPI.COMM_WORLD
     r = MPI.Comm_rank(comm)
@@ -124,7 +124,7 @@ function parallel_coarse_grain(field::Union{Field,Nothing}, kernel::Kernel; halo
     # add halos in x and filter locally
     Ahalo = exchange_halos!(fld_loc.data, halosize, px)
     fld_halo = Field(Ahalo, Grid(size(Ahalo,2), size(Ahalo,1), dx, dy, px, py))
-    out_halo = coarse_grain(fld_halo, kernel)
+    out_halo = coarse_grain(fld_halo, kernel; threaded=threaded)
     out_loc = Field(copy(strip_halos(out_halo.data, halosize)), fld_loc.grid)
 
     # gather results to root
