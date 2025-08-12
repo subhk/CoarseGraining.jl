@@ -1,6 +1,6 @@
 using ..CoarseGraining: Field, Grid, gradient, coarse_grain
 
-export okuboweiss
+export okuboweiss, compute_pi
 
 """
     okuboweiss(u, v) -> Field
@@ -47,4 +47,3 @@ function compute_pi(u::Field{T,G}, v::Field{T,G}, kernel) where {T<:Real,G}
     Π = .-(τxx .* Sxx .+ 2 .* τxy .* Sxy .+ τyy .* Syy)
     return Field(Π, u.grid)
 end
-
