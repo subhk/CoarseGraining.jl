@@ -86,8 +86,8 @@ end
     # Check div-free of udf/vdf and near irrotationality of up/vp
     div_df = divergence_sphere(udf, vdf)
     vort_p = vorticity_sphere(up, vp)
-    @test mean(abs.(div_df.data)) < 5e-1
-    @test mean(abs.(vort_p.data)) < 5e-1
+    @test mean(abs.(div_df.data)) < 0.5
+    @test mean(abs.(vort_p.data)) < 0.5
 end
 
 @testset "Spherical Poisson" begin

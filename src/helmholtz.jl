@@ -34,28 +34,31 @@ function helmholtz_hodge(u::Field{T,G}, v::Field{T,G}) where {T<:Real,G}
     Û = fft(Float64.(u.data))
     V̂ = fft(Float64.(v.data))
 
+    # Build spectral projectors for potential and divergence-free parts
+    # Longitudinal (potential) projection: F̂_pot = (k k^T / k^2) F̂
+    dotkF = KX .* Û .+ KY .* V̂
+    Û_pot = (KX ./ k2) .* dotkF
+    V̂_pot = (KY ./ k2) .* dotkF
+    # Handle zero mode explicitly (already yields zero because dotkF[1,1]=0)
+    Û_pot[1,1] = 0.0
+    V̂_pot[1,1] = 0.0
+    # Divergence-free remainder
+    Û_df = Û .- Û_pot
+    V̂_df = V̂ .- V̂_pot
+
+    # Inverse FFT to real space components
+    upot = real(ifft(Û_pot))
+    vpot = real(ifft(V̂_pot))
+    udf  = real(ifft(Û_df))
+    vdf  = real(ifft(V̂_df))
+
+    # Also compute scalar potentials for users that need them
     # Divergence and vorticity in Fourier space
     div̂ = (im .* KX) .* Û .+ (im .* KY) .* V̂
     vort̂ = (im .* KX) .* V̂ .- (im .* KY) .* Û
-
-    # Solve Poisson ∇²ϕ = ∇·F in spectral space: -k^2 ϕ̂ = div̂ ⇒ ϕ̂ = -div̂/k^2
-    ϕ̂ = -div̂ ./ k2
-    ψ̂ = -vort̂ ./ k2
-    ϕ̂[1,1] = 0.0
-    ψ̂[1,1] = 0.0
-
-    # Grad φ in spectral space
-    ∂xϕ̂ = (im .* KX) .* ϕ̂
-    ∂yϕ̂ = (im .* KY) .* ϕ̂
-    # Rot ψ = (∂yψ, -∂xψ)
-    ∂yψ̂ = (im .* KY) .* ψ̂
-    ∂xψ̂ = (im .* KX) .* ψ̂
-
-    upot = real(ifft(∂xϕ̂))
-    vpot = real(ifft(∂yϕ̂))
-    udf = real(ifft(∂yψ̂))
-    vdf = real(ifft(-∂xψ̂))
-
+    # Solve Poisson ∇²ϕ = ∇·F and ∇²ψ = ζ in spectral space
+    ϕ̂ = -div̂ ./ k2; ϕ̂[1,1] = 0.0
+    ψ̂ = -vort̂ ./ k2; ψ̂[1,1] = 0.0
     ϕ = real(ifft(ϕ̂))
     ψ = real(ifft(ψ̂))
 

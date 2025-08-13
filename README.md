@@ -8,7 +8,7 @@ Comprehensive FlowSieve-equivalent coarse graining toolkit for turbulent and geo
 
 ## Features
 
-### ** Ocean Modeling**
+###  **Ocean Modeling**
 - **Spherical Helmholtz decomposition** with iterative solvers for global domains
 - **Sophisticated boundary handling** with land-avoiding stencils for coastal regions
 - **Complete energy budget analysis** (transport, baroclinic conversion, viscous dissipation)

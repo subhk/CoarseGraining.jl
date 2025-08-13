@@ -94,4 +94,7 @@ export gradient_curvilinear
 # regrid.jl
 export regrid_index_bilinear, regrid_lonlat_nearest
 
+# utilities
+export mean
+
 end # module

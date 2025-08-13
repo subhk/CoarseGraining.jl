@@ -25,10 +25,14 @@ function gradient_sphere(f::Field{T,G}) where {T<:Real,G}
         for i in 1:nx
             il = i == 1 ? (grid.periodic_lon ? nx : 1) : i-1
             ir = i == nx ? (grid.periodic_lon ? 1 : nx) : i+1
-            jl = j == 1 ? 1 : j-1
-            jr = j == ny ? ny : j+1
             ∂λ[j,i] = (A[j,ir] - A[j,il])/(2dλ)
-            ∂ϕ[j,i] = (A[jr,i] - A[jl,i])/(2dϕ)
+            if j == 1
+                ∂ϕ[j,i] = (A[j+1,i] - A[j,i]) / dϕ   # forward difference at south boundary
+            elseif j == ny
+                ∂ϕ[j,i] = (A[j,i] - A[j-1,i]) / dϕ   # backward difference at north boundary
+            else
+                ∂ϕ[j,i] = (A[j+1,i] - A[j-1,i]) / (2dϕ)
+            end
         end
     end
     # Physical gradients (east/north components)
@@ -174,8 +178,10 @@ function rot_sphere(ψ::Field{T,G}) where {T<:Real,G}
     uE = similar(A)
     vN = similar(A)
     for j in 1:ny
-        @inbounds uE[j,:] = -∂ϕ[j,:] ./ a
-        @inbounds vN[j,:] =  ∂λ[j,:] ./ (a*cosϕ[j])
+        # Divergence-free field from streamfunction on a sphere:
+        # uE =  (1/(a cosϕ)) ∂ψ/∂ϕ,   vN = -(1/a) ∂ψ/∂λ
+        @inbounds uE[j,:] =  ∂ϕ[j,:] ./ (a * cosϕ[j])
+        @inbounds vN[j,:] = -∂λ[j,:] ./ a
     end
     return Field(uE, grid), Field(vN, grid)
 end
