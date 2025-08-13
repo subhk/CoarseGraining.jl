@@ -18,9 +18,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.9'
           - '1.10'
-          - 'nightly'
+          - '1.11'
         os:
           - ubuntu-latest
           - macOS-latest
@@ -35,7 +34,7 @@ jobs:
             arch: x86
         include:
           # Test 32-bit on Linux
-          - version: '1.9'
+          - version: '1.10'
             os: ubuntu-latest
             arch: x86
     steps:
