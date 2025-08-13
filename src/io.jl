@@ -49,8 +49,6 @@ function write_attr(path::AbstractString, name::AbstractString, value; varname::
     return nothing
 end
 
-end # module IO
-
 function load_region_masks(path::AbstractString, names::Vector{String}; threshold=0)
     ds = NCDataset(path)
     masks = Dict{String,BitArray{2}}()
@@ -105,6 +103,8 @@ function write_region_stats(path::AbstractString, stats::Dict{String,Tuple{Float
     close(ds)
     return path
 end
+
+end # module IO
 
 using .IO: load_netcdf_var, write_netcdf_field, read_attr, write_attr, load_region_masks, load_vector_vars, write_vector_vars, write_region_stats
 export load_netcdf_var, write_netcdf_field, read_attr, write_attr,
