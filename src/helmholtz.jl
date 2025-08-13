@@ -40,7 +40,7 @@ function helmholtz_hodge(u::Field{T,G}, v::Field{T,G}) where {T<:Real,G}
 
     # Solve Poisson ∇²ϕ = ∇·F in spectral space: -k^2 ϕ̂ = div̂ ⇒ ϕ̂ = -div̂/k^2
     ϕ̂ = -div̂ ./ k2
-    ψ̂ = vort̂ ./ k2
+    ψ̂ = -vort̂ ./ k2
     ϕ̂[1,1] = 0.0
     ψ̂[1,1] = 0.0
 
