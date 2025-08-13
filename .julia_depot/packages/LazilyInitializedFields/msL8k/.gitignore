@@ -1,6 +1,0 @@
-*.jl.*.cov
-*.jl.cov
-*.jl.mem
-page/__site
-docs
-Manifest.toml
