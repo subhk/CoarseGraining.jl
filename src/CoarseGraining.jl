@@ -11,6 +11,10 @@ include("filters.jl")
 include("filters_masked.jl")
 include("differential.jl")
 include("helmholtz.jl")
+include("helmholtz_spherical.jl")
+include("diagnostics_advanced.jl")
+include("boundary_handling.jl")
+include("multiresolution.jl")
 include("io.jl")
 include("mpi_utils.jl")
 include("spherical.jl")
@@ -43,6 +47,23 @@ export gradient, divergence, vorticity
 
 # helmholtz.jl
 export helmholtz_hodge
+
+# helmholtz_spherical.jl  
+export helmholtz_hodge_sphere_iterative, poisson_sphere_solve_iterative, 
+       helmholtz_hodge_sphere_multigrid, coarsen_spherical_grid, refine_spherical_grid
+
+# diagnostics_advanced.jl
+export compute_energy_transport, compute_baroclinic_transfer, compute_viscous_dissipation,
+       compute_pressure_transport, compute_advection_transport, compute_full_energy_budget,
+       compute_kinetic_energy_spectra, compute_enstrophy_transfer
+
+# boundary_handling.jl
+export coarse_grain_adaptive, compute_adaptive_bounds, land_avoiding_stencil,
+       coarse_grain_masked_adaptive, extend_field_to_boundaries
+
+# multiresolution.jl  
+export coarsen_field, refine_field, create_multiresolution_hierarchy,
+       hierarchical_helmholtz_workflow, save_multiresolution_data, load_multiresolution_data
 
 # spherical.jl
 export gradient_sphere, vorticity_sphere, divergence_sphere, vel_spher_to_cart, vel_cart_to_spher
