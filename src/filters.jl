@@ -255,9 +255,9 @@ function coarse_grain_fft(field::Field{T,G}, σx::Real, σy::Real) where {T<:Rea
     KX = reshape(kx, 1, :)
     KY = reshape(ky, :, 1)
     # Transfer function in FFT ordering
-    G = @. exp(-0.5*((σx^2)*(KX^2) + (σy^2)*(KY^2)))
+    transfer_func = @. exp(-0.5*((σx^2)*(KX^2) + (σy^2)*(KY^2)))
     F = fft(A)
-    out = real(ifft(F .* G))
+    out = real(ifft(F .* transfer_func))
     return Field(T.(out), field.grid)
 end
 
