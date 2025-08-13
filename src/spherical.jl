@@ -61,7 +61,7 @@ function vorticity_sphere(uE::Field{T,G}, vN::Field{T,G}) where {T<:Real,G}
     u = uE.data
     v = vN.data
     ∂v∂λ = similar(u)
-    ∂(ucos)/∂ϕ = similar(u)
+    ∂ucos∂ϕ = similar(u)
     for j in 1:ny
         for i in 1:nx
             il = i == 1 ? (grid.periodic_lon ? nx : 1) : i-1
@@ -71,12 +71,12 @@ function vorticity_sphere(uE::Field{T,G}, vN::Field{T,G}) where {T<:Real,G}
             ∂v∂λ[j,i] = (v[j,ir] - v[j,il])/(2dλ)
             ucos_l = u[jl,i]*cosϕ[jl]
             ucos_r = u[jr,i]*cosϕ[jr]
-            ∂(ucos)/∂ϕ[j,i] = (ucos_r - ucos_l)/(2dϕ)
+            ∂ucos∂ϕ[j,i] = (ucos_r - ucos_l)/(2dϕ)
         end
     end
     ζ = similar(u)
     for j in 1:ny
-        @inbounds ζ[j,:] = (∂v∂λ[j,:] .- ∂(ucos)/∂ϕ[j,:]) ./ (a*cosϕ[j])
+        @inbounds ζ[j,:] = (∂v∂λ[j,:] .- ∂ucos∂ϕ[j,:]) ./ (a*cosϕ[j])
     end
     return Field(ζ, grid)
 end
@@ -101,8 +101,8 @@ function divergence_sphere(uE::Field{T,G}, vN::Field{T,G}) where {T<:Real,G}
     cosϕ = cos.(ϕ)
     u = uE.data
     v = vN.data
-    ∂(u cos)/∂λ = similar(u)
-    ∂v/∂ϕ = similar(u)
+    ∂ucos∂λ = similar(u)
+    ∂v∂ϕ = similar(u)
     for j in 1:ny
         for i in 1:nx
             il = i == 1 ? (grid.periodic_lon ? nx : 1) : i-1
@@ -111,13 +111,13 @@ function divergence_sphere(uE::Field{T,G}, vN::Field{T,G}) where {T<:Real,G}
             jr = j == ny ? ny : j+1
             ul = u[j,il]*cosϕ[j]
             ur = u[j,ir]*cosϕ[j]
-            ∂(u cos)/∂λ[j,i] = (ur - ul)/(2dλ)
-            ∂v/∂ϕ[j,i] = (v[jr,i] - v[jl,i])/(2dϕ)
+            ∂ucos∂λ[j,i] = (ur - ul)/(2dλ)
+            ∂v∂ϕ[j,i] = (v[jr,i] - v[jl,i])/(2dϕ)
         end
     end
     div = similar(u)
     for j in 1:ny
-        @inbounds div[j,:] = (∂(u cos)/∂λ[j,:] .+ ∂v/∂ϕ[j,:]) ./ (a*cosϕ[j])
+        @inbounds div[j,:] = (∂ucos∂λ[j,:] .+ ∂v∂ϕ[j,:]) ./ (a*cosϕ[j])
     end
     return Field(div, grid)
 end
