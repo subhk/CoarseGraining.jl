@@ -48,14 +48,40 @@ function coarse_grain_butterworth_dsp(field::Field{T,G}, kc::Union{Real,Tuple{<:
     wy = clamp(kcy*dy/π, 0.0, 1.0)
     fx = digitalfilter(Lowpass(wx), Butterworth(order))
     fy = digitalfilter(Lowpass(wy), Butterworth(order))
-    if zero_phase
-        B = DSP.filtfilt(fx, A; dims=2)
-        C = DSP.filtfilt(fy, B; dims=1)
-    else
-        B = DSP.filt(fx, A; dims=2)
-        C = DSP.filt(fy, B; dims=1)
-    end
+    # Apply along x (dim=2) then y (dim=1). Some DSP versions don't support `dims`,
+    # so we manually loop over vectors.
+    B = _apply_iir_along(A, fx; dim=2, zero_phase=zero_phase)
+    C = _apply_iir_along(B, fy; dim=1, zero_phase=zero_phase)
     return Field(T.(C), field.grid)
+end
+
+# Helper: apply IIR filter along a specific dimension by looping vectors
+function _apply_iir_along(A::AbstractMatrix{<:Real}, filt, ; dim::Int, zero_phase::Bool)
+    ny, nx = size(A)
+    out = similar(A, Float64)
+    if dim == 2
+        @inbounds for j in 1:ny
+            row = @view A[j, :]
+            x = collect(row)
+            # Use periodic extension to avoid edge transients boosting variance
+            xr = vcat(x, x, x)
+            ylong = zero_phase ? DSP.filtfilt(filt, xr) : DSP.filt(filt, xr)
+            y = @view ylong[length(x)+1:2*length(x)]
+            @views out[j, :] .= y
+        end
+    elseif dim == 1
+        @inbounds for i in 1:nx
+            col = @view A[:, i]
+            x = collect(col)
+            xr = vcat(x, x, x)
+            ylong = zero_phase ? DSP.filtfilt(filt, xr) : DSP.filt(filt, xr)
+            y = @view ylong[length(x)+1:2*length(x)]
+            @views out[:, i] .= y
+        end
+    else
+        error("dim must be 1 or 2, got $dim")
+    end
+    return out
 end
 
 """
