@@ -361,7 +361,9 @@ function parallel_coarse_grain_fft_distributed(field::Union{Field,Nothing}, σx:
     for s in 1:p
         nx_s = xcounts[s]
         offx = xoffsets[s] + 1
-        block = reshape(@view(recvbuf, rdispls_v[s]+1 : rdispls_v[s]+recvcounts_v[s]), ny_loc, nx_s)
+        start_idx = rdispls_v[s] + 1
+        end_idx = rdispls_v[s] + recvcounts_v[s]
+        block = reshape(@view(recvbuf[start_idx:end_idx]), ny_loc, nx_s)
         Fy_yslab[:, offx:offx+nx_s-1] .= block
     end
 
@@ -399,7 +401,9 @@ function parallel_coarse_grain_fft_distributed(field::Union{Field,Nothing}, σx:
     for s in 1:p
         ny_sloc = ycounts[s]
         offy = yoffsets[s] + 1
-        block = reshape(@view(recvbuf2, rdispls2[s]+1 : rdispls2[s]+recvcounts2[s]), ny_sloc, nx_loc)
+        start_idx2 = rdispls2[s] + 1
+        end_idx2 = rdispls2[s] + recvcounts2[s]
+        block = reshape(@view(recvbuf2[start_idx2:end_idx2]), ny_sloc, nx_loc)
         fy_xslab[offy:offy+ny_sloc-1, :] .= block
     end
 
