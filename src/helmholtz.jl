@@ -16,9 +16,16 @@ function helmholtz_hodge(u::Field{T,G}, v::Field{T,G}) where {T<:Real,G}
     @assert size(u.data) == size(v.data)
     ny, nx = size(u.data)
     dx, dy = grid.dx, grid.dy
-    # Wavenumbers
-    kx = [0:floor(Int,nx/2); ceil(Int,-nx/2)+1:-1] .* (2π/(nx*dx))
-    ky = [0:floor(Int,ny/2); ceil(Int,-ny/2)+1:-1] .* (2π/(ny*dy))
+    # Wavenumbers (radians) matching FFT output ordering
+    # For even n: [0, 1, ..., n/2-1, -n/2, ..., -1]
+    # For odd  n: [0, 1, ..., (n-1)/2, -(n-1)/2, ..., -1]
+    local function fftfreq_rad(n::Int, d::Float64)
+        h = n ÷ 2
+        idx = iseven(n) ? vcat(0:h-1, -h:-1) : vcat(0:h, -h:-1)
+        return idx .* (2π/(n*d))
+    end
+    kx = fftfreq_rad(nx, dx)
+    ky = fftfreq_rad(ny, dy)
     KX = reshape(kx, 1, :)
     KY = reshape(ky, :, 1)
     k2 = @. (KX^2 + KY^2)
@@ -31,7 +38,8 @@ function helmholtz_hodge(u::Field{T,G}, v::Field{T,G}) where {T<:Real,G}
     div̂ = @. (KX .* Û + KY .* V̂) * im
     vort̂ = @. (KX .* V̂ - KY .* Û) * im
 
-    ϕ̂ = div̂ ./ k2
+    # Solve Poisson ∇²ϕ = ∇·F in spectral space: -k^2 ϕ̂ = div̂ ⇒ ϕ̂ = -div̂/k^2
+    ϕ̂ = -div̂ ./ k2
     ψ̂ = vort̂ ./ k2
     ϕ̂[1,1] = 0.0
     ψ̂[1,1] = 0.0

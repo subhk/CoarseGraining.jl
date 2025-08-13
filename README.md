@@ -8,26 +8,26 @@ Comprehensive FlowSieve-equivalent coarse graining toolkit for turbulent and geo
 
 ## Features
 
-### 🌊 **Advanced Ocean Modeling**
+### ** Ocean Modeling**
 - **Spherical Helmholtz decomposition** with iterative solvers for global domains
 - **Sophisticated boundary handling** with land-avoiding stencils for coastal regions
 - **Complete energy budget analysis** (transport, baroclinic conversion, viscous dissipation)
 - **Multi-resolution workflows** for 10-100x computational speedup
 
-### ⚡ **High-Performance Computing**
+###  **High-Performance Computing**
 - MPI parallelization with domain decomposition and distributed FFT
 - Threaded real-space filtering with automatic tile optimization
 - Memory-efficient iterative solvers for large spherical grids
 - Hierarchical multi-grid acceleration for massive problems
 
-### 🔬 **Comprehensive Analysis Tools**
+###  **Comprehensive Analysis Tools**
 - Multiple filter types: Gaussian, Butterworth (FFT/DSP), Boxcar
 - Mask-aware filtering for land/sea boundaries and missing data
 - Spectral analysis, diagnostics (Okubo-Weiss, Leonard transfer Π)
 - Versatile grid support: Cartesian, spherical, curvilinear
 
-### 📊 **Data Integration**
-- NetCDF I/O with model adapters (CROCO/ROMS/MITgcm)
+###  **Data Integration**
+- NetCDF I/O with model adapters (CROCO/UCLA-ROMS)
 - Regridding utilities for multi-model workflows
 - Region statistics with customizable masks and attributes
 
@@ -193,7 +193,7 @@ restored_fields, restored_grids = load_multiresolution_data("ocean_multires.nc")
 
 ## Documentation
 
-📖 **[Full Documentation](https://subhk.github.io/CoarseGraining.jl/stable/)**
+ **[Full Documentation](https://subhk.github.io/CoarseGraining.jl/stable/)**
 
 - [Installation Guide](https://subhk.github.io/CoarseGraining.jl/stable/installation/)
 - [Quick Start Tutorial](https://subhk.github.io/CoarseGraining.jl/stable/quickstart/)
@@ -204,11 +204,11 @@ restored_fields, restored_grids = load_multiresolution_data("ocean_multires.nc")
 
 This package now provides **complete FlowSieve feature parity** with major enhancements:
 
-✅ **Spherical Helmholtz decomposition** with iterative solvers  
-✅ **Complete energy budget analysis** following Aluie et al. (2018)  
-✅ **Sophisticated boundary handling** with land-avoiding stencils  
-✅ **Multi-resolution workflows** for 10-100x computational speedup  
-✅ **Realistic ocean modeling** capabilities for coastal domains
+- **Spherical Helmholtz decomposition** with iterative solvers  
+- **Complete energy budget analysis** following Aluie et al. (2018)  
+- **Sophisticated boundary handling** with land-avoiding stencils  
+- **Multi-resolution workflows** for 10-100x computational speedup  
+- **Realistic ocean modeling** capabilities for coastal domains
 
 ## References
 
@@ -225,7 +225,3 @@ This package now provides **complete FlowSieve feature parity** with major enhan
 - **Helmholtz–Hodge decomposition**: Chorin, A. J., & Marsden, J. E. (1993). *A Mathematical Introduction to Fluid Mechanics* (3rd ed.). Springer.
 - **Butterworth filtering**: Butterworth, S. (1930). On the theory of filter amplifiers. *Wireless Engineer*, 7, 536–541.
 - **FlowSieve**: Original C++ implementation at [github.com/janinejanoski/FlowSieve](https://github.com/janinejanoski/FlowSieve)
-
----
-
-**CoarseGraining.jl** - Advanced turbulence analysis for the Julia ecosystem 🌊⚡🔬
