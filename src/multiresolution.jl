@@ -98,7 +98,7 @@ function refine_field(field::Field{T,G}, target_grid::G2;
     
     source_grid = field.grid
     
-    if G == G2 && source_grid == target_grid
+    if typeof(source_grid) == typeof(target_grid) && source_grid == target_grid
         return field  # No refinement needed
     end
     
