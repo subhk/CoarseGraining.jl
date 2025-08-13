@@ -6,7 +6,12 @@ DocMeta.setdocmeta!(CoarseGraining, :DocTestSetup, :(using CoarseGraining); recu
 makedocs(
     sitename = "CoarseGraining.jl",
     modules = [CoarseGraining],
-    format = Documenter.HTML(assets=["assets/custom.css"], prettyurls=get(ENV, "CI", "false") == "true"),
+    format = Documenter.HTML(
+        assets=["assets/custom.css"], 
+        prettyurls=get(ENV, "CI", "false") == "true",
+        canonical="https://subhk.github.io/CoarseGraining.jl/stable/",
+        edit_link="main"
+    ),
     authors = "CoarseGraining.jl Contributors",
     pages = [
         "Home" => "index.md",
@@ -14,6 +19,7 @@ makedocs(
         "Quick Start" => "quickstart.md",
         "Theory" => "theory.md",
         "Filters" => "filters.md",
+        "Advanced Features" => "advanced_features.md",
         "MPI & Parallel" => "mpi.md",
         "IO & Models" => "io.md",
         "Regridding" => "regridding.md",
@@ -24,8 +30,11 @@ makedocs(
 )
 
 deploydocs(
-    repo = get(ENV, "DOCS_REPO", ""), # set e.g. "github.com:USER/CoarseGraining.jl.git"
+    repo = "github.com/subhk/CoarseGraining.jl.git",
     devbranch = "main",
     push_preview = true,
+    target = "build",
+    deps = nothing,
+    make = nothing,
 )
 
