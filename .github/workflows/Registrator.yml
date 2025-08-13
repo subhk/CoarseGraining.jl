@@ -1,0 +1,26 @@
+name: Registrator
+on:
+  issue_comment:
+    types:
+      - created
+permissions:
+  actions: read
+  checks: read
+  contents: read
+  deployments: read
+  issues: write
+  discussions: read
+  packages: read
+  pages: read
+  pull-requests: write
+  repository-projects: read
+  security-events: read
+  statuses: read
+jobs:
+  registrator:
+    if: github.event.issue.pull_request == null && contains(github.event.comment.body, '@JuliaRegistrator register')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: julia-actions/RegisterAction@latest
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
