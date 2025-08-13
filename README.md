@@ -225,3 +225,4 @@ This package now provides **complete FlowSieve feature parity** with major enhan
 - **Helmholtz–Hodge decomposition**: Chorin, A. J., & Marsden, J. E. (1993). *A Mathematical Introduction to Fluid Mechanics* (3rd ed.). Springer.
 - **Butterworth filtering**: Butterworth, S. (1930). On the theory of filter amplifiers. *Wireless Engineer*, 7, 536–541.
 - **FlowSieve**: Original C++ implementation at [github.com/janinejanoski/FlowSieve](https://github.com/janinejanoski/FlowSieve)
+# Documentation Update
