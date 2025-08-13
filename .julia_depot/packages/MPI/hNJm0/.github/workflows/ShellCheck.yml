@@ -1,0 +1,29 @@
+name: ShellCheck
+
+on:
+  push:
+    branches:
+      - master
+      - release-*
+    tags: '*'
+    paths:
+      - 'bin/**'
+  pull_request:
+    paths:
+      - 'bin/**'
+
+concurrency:
+  # Skip intermediate builds: always.
+  # Cancel intermediate builds: always.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt install shellcheck
+      - name: Check scripts
+        run: shellcheck bin/*

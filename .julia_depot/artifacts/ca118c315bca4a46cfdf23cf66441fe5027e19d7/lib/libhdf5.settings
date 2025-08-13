@@ -1,0 +1,94 @@
+        SUMMARY OF THE HDF5 CONFIGURATION
+        =================================
+
+General Information:
+-------------------
+                   HDF5 Version: 1.14.2
+                  Configured on: Thu Sep  7 05:32:09 UTC 2023
+                  Configured by: root@amdci7.julia.csail.mit.edu
+                    Host system: x86_64-apple-darwin14
+              Uname information: Darwin amdci7.julia.csail.mit.edu 14.5.0 Darwin Kernel Version 14.5.0: Wed Feb 13 00:49:00 UTC 2013; root:xnu-9000/RELEASE_X86_64 x86_64
+                       Byte sex: little-endian
+             Installation point: /workspace/destdir
+
+Compiling Options:
+------------------
+                     Build Mode: production
+              Debugging Symbols: no
+                        Asserts: no
+                      Profiling: no
+             Optimization Level: high
+
+Linking Options:
+----------------
+                      Libraries: shared
+  Statically Linked Executables: 
+                        LDFLAGS: 
+                     H5_LDFLAGS:  -Wl,-commons,use_dylibs
+                     AM_LDFLAGS:  -L/workspace/destdir/lib
+                Extra libraries: -lcrypto -lcurl -lsz -lz -ldl -lm 
+                       Archiver: ar
+                       AR_FLAGS: cr
+                         Ranlib: x86_64-apple-darwin14-ranlib
+
+Languages:
+----------
+                              C: yes
+                     C Compiler: /workspace/destdir/bin/mpicc
+                       CPPFLAGS: 
+                    H5_CPPFLAGS:   -DNDEBUG -UH5_DEBUG_API -I/workspace/srcdir/hdf5-1.14.2/src/H5FDsubfiling
+                    AM_CPPFLAGS:  -I/workspace/destdir/include
+                        C Flags:  -std=c99
+                     H5 C Flags:  -std=c99  -Wall -Warray-bounds -Wcast-qual -Wconversion -Wdouble-promotion -Wextra -Wformat=2 -Wframe-larger-than=16384 -Wimplicit-fallthrough -Wnull-dereference -Wunused-const-variable -Wwrite-strings -Wpedantic -Wvolatile-register-var -Wno-c++-compat     -Wbad-function-cast -Wimplicit-function-declaration -Wincompatible-pointer-types -Wmissing-declarations -Wpacked -Wshadow -Wswitch -Wno-error=incompatible-pointer-types-discards-qualifiers -Wunused-function -Wunused-variable -Wunused-parameter -Wcast-align -Wformat -Wno-missing-noreturn -O3
+                     AM C Flags: 
+               Shared C Library: yes
+               Static C Library: no
+
+
+                        Fortran: yes
+               Fortran Compiler: /workspace/destdir/bin/mpifort
+                  Fortran Flags: 
+               H5 Fortran Flags:  -std=f2008  -Waliasing -Wall -Wcharacter-truncation -Wextra -Wimplicit-interface -Wsurprising -Wunderflow -pedantic -Wintrinsics-std -Wimplicit-procedure -Wreal-q-constant -Wfunction-elimination -Wrealloc-lhs -Wrealloc-lhs-all -Wno-c-binding-type -Winteger-division -Wfrontend-loop-interchange   -s  -Wno-unused-dummy-argument -Wno-array-temporaries -O3
+               AM Fortran Flags: 
+         Shared Fortran Library: yes
+         Static Fortran Library: no
+               Module Directory: ${includedir}
+
+                            C++: yes
+                   C++ Compiler: /workspace/destdir/bin/mpicxx
+                      C++ Flags:  -std=c++11
+                   H5 C++ Flags:   -std=c++11 -Wall -Warray-bounds -Wcast-qual -Wconversion -Wdouble-promotion -Wextra -Wformat=2 -Wframe-larger-than=16384 -Wimplicit-fallthrough -Wnull-dereference -Wunused-const-variable -Wwrite-strings -Wpedantic -Wvolatile-register-var -Wno-c++-compat     -Wbad-function-cast -Wimplicit-function-declaration -Wincompatible-pointer-types -Wmissing-declarations -Wpacked -Wshadow -Wswitch -Wno-error=incompatible-pointer-types-discards-qualifiers -Wunused-function -Wunused-variable -Wunused-parameter -Wcast-align -Wformat -O3
+                   AM C++ Flags: 
+             Shared C++ Library: yes
+             Static C++ Library: no
+
+                           Java: no
+
+
+Features:
+---------
+                     Parallel HDF5: yes
+  Parallel Filtered Dataset Writes: yes
+                Large Parallel I/O: yes
+                High-level library: yes
+Dimension scales w/ new references: no
+                  Build HDF5 Tests: no
+                  Build HDF5 Tools: yes
+                   Build GIF Tools: no
+                      Threadsafety: no
+               Default API mapping: v114
+    With deprecated public symbols: yes
+            I/O filters (external): deflate(zlib),szip(encoder)
+                     Map (H5M) API: no
+                        Direct VFD: no
+                        Mirror VFD: yes
+                     Subfiling VFD: no
+                (Read-Only) S3 VFD: yes
+              (Read-Only) HDFS VFD: no
+    Packages w/ extra debug output: none
+                       API tracing: no
+              Using memory checker: no
+            Function stack tracing: no
+                  Use file locking: best-effort
+         Strict file format checks: no
+      Optimization instrumentation: no

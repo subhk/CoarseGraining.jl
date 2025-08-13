@@ -1,3 +1,13 @@
+depot = abspath(joinpath(@__DIR__, "..", ".julia_depot"))
+isdir(depot) || mkpath(depot)
+ENV["JULIA_DEPOT_PATH"] = depot
+empty!(Base.DEPOT_PATH)
+push!(Base.DEPOT_PATH, depot)
+
+using Pkg
+Pkg.activate(@__DIR__)
+Pkg.develop(PackageSpec(path=joinpath(@__DIR__, "..")))
+
 using Documenter
 using CoarseGraining
 
@@ -6,6 +16,7 @@ DocMeta.setdocmeta!(CoarseGraining, :DocTestSetup, :(using CoarseGraining); recu
 makedocs(
     sitename = "CoarseGraining.jl",
     modules = [CoarseGraining],
+    checkdocs = :all,
     format = Documenter.HTML(
         assets=["assets/custom.css"], 
         prettyurls=get(ENV, "CI", "false") == "true",
@@ -37,4 +48,3 @@ deploydocs(
     deps = nothing,
     make = nothing,
 )
-

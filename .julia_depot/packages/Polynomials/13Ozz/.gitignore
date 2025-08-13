@@ -1,0 +1,10 @@
+docs/build/
+docs/site/
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+
+Manifest.toml
+Manifest-v*.*.toml
+archive/
+.benchmarkci
