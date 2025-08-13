@@ -21,10 +21,18 @@ end
     coarse_grain_butterworth_dsp(field, kc; order=2, zero_phase=true)
 
 Butterworth low-pass using DSP.jl digital IIR filtering applied separably along x and y.
-`kc` may be scalar (isotropic cutoff) or `(kcx, kcy)` in radians per length.
-Normalized cutoff per axis is `ωc = kc*dx` and `ωc/π` for DSP.
-Use `zero_phase=true` to apply filtfilt (forward-backward) and avoid phase shift.
-Assumes periodic-like data or long signals (IIR edge effects may appear).
+
+⚠️  **IMPORTANT DIFFERENCES FROM FFT VERSION**:
+- Applies **separable 1D filters** (x then y), not true 2D isotropic filtering
+- May introduce **edge artifacts** due to IIR nature (unlike periodic FFT version)  
+- Different frequency response: H(kx)×H(ky) ≠ H(√(kx²+ky²))
+
+Parameters:
+- `kc`: cutoff wavenumber (scalar/tuple) in radians per length
+- `order`: Butterworth filter order (steepness)
+- `zero_phase`: if true, uses filtfilt (forward-backward) to eliminate phase shift
+
+For exact equivalence to the FFT version, use `coarse_grain_butterworth()` instead.
 """
 function coarse_grain_butterworth_dsp(field::Field{T,G}, kc::Union{Real,Tuple{<:Real,<:Real}}; order::Integer=2, zero_phase::Bool=true) where {T<:Real,G}
     @assert order >= 1
@@ -34,8 +42,7 @@ function coarse_grain_butterworth_dsp(field::Field{T,G}, kc::Union{Real,Tuple{<:
     if kc isa Tuple
         kcx, kcy = kc
     else
-        kcx = ky = Float64(kc)
-        kcy = kcx
+        kcx = kcy = Float64(kc)
     end
     wx = clamp(kcx*dx/π, 0.0, 1.0)
     wy = clamp(kcy*dy/π, 0.0, 1.0)

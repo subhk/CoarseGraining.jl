@@ -1,7 +1,7 @@
 name = "CoarseGraining"
 uuid = "5f2a3a1e-7d26-4a41-8d77-4b5f2d2c9b8e"
-authors = ["Your Name <you@example.com>"]
-version = "0.1.0"
+authors = ["Subhajit Kar <subhajitkar19@gmail.com>"]
+version = "1.0.0"
 
 [deps]
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
