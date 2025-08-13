@@ -217,4 +217,4 @@ end
 
 end # module
 
-using .ModelIO: detect_model, load_model_var, average_to_rho
+using .ModelIO: detect_model, load_model_var, average_to_rho, average_to_tracer_mitgcm

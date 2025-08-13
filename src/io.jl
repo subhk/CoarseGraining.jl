@@ -106,10 +106,7 @@ function write_region_stats(path::AbstractString, stats::Dict{String,Tuple{Float
     return path
 end
 
-end # module IO
-
 using .IO: load_netcdf_var, write_netcdf_field, read_attr, write_attr, load_region_masks, load_vector_vars, write_vector_vars, write_region_stats
-using .IO: write_regions_file, write_region_stats_with_attrs, write_region_stats_and_masks_with_attrs
 export load_netcdf_var, write_netcdf_field, read_attr, write_attr,
        load_region_masks, load_vector_vars, write_vector_vars,
        write_region_stats, write_regions_file, write_region_stats_with_attrs, write_region_stats_and_masks_with_attrs

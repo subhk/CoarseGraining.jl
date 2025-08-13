@@ -1,12 +1,12 @@
 module MPIUtils
 
 using MPI
-using ..CoarseGraining: Field, Grid, Kernel, coarse_grain, coarse_grain_fft
+using ..CoarseGraining: Field, Grid, Kernel, coarse_grain, coarse_grain_fft, coarse_grain_masked
 using ..CoarseGraining: helmholtz_hodge
 
 export mpi_init, mpi_finalize, mpi_enabled, mpi_rank, mpi_size,
        parallel_coarse_grain, parallel_coarse_grain_fft, parallel_helmholtz_hodge,
-       parallel_coarse_grain_fft_distributed
+       parallel_coarse_grain_fft_distributed, parallel_coarse_grain_masked
 
 const _MPI_ENABLED = Ref(false)
 
@@ -132,6 +132,56 @@ function parallel_coarse_grain(field::Union{Field,Nothing}, kernel::Kernel; halo
     MPI.Gatherv!(out_loc.data, recv, 0, comm; counts=sendcounts, displs=displs)
     if r == 0
         return Field(recv, fullgrid)
+    else
+        return nothing
+    end
+end
+
+function parallel_coarse_grain_masked(field::Union{Field,Nothing}, kernel::Kernel, mask::Union{BitArray{2},Nothing}; halosize::Int=max(kernel.radius_x, kernel.radius_y), threaded::Bool=true, normalize::Bool=true, fill_value=NaN)
+    mpi_init()
+    comm = MPI.COMM_WORLD
+    r = MPI.Comm_rank(comm)
+    p = MPI.Comm_size(comm)
+    if r == 0 && (field === nothing || mask === nothing)
+        error("On rank 0, 'field' and 'mask' must be provided.")
+    end
+    ints = zeros(Int64, 4)
+    floats = zeros(Float64, 2)
+    if r == 0
+        ints .= (field.grid.nx, field.grid.ny, field.grid.periodic_x ? 1 : 0, field.grid.periodic_y ? 1 : 0)
+        floats .= (field.grid.dx, field.grid.dy)
+    end
+    MPI.Bcast!(ints, 0, comm)
+    MPI.Bcast!(floats, 0, comm)
+    nx, ny = Int(ints[1]), Int(ints[2])
+    px, py = (ints[3] == 1), (ints[4] == 1)
+    dx, dy = floats[1], floats[2]
+    counts, offsets = decompose_x(nx, p)
+    nx_loc = counts[r+1]
+    sendcounts = [counts[i]*ny for i in 1:p]
+    displs = [offsets[i]*ny for i in 1:p]
+    # Scatter field
+    A_loc = Array{Float64,2}(undef, ny, nx_loc)
+    MPI.Scatterv!(r==0 ? Float64.(field.data) : Array{Float64,2}(undef,0,0), A_loc, 0, comm; counts=sendcounts, displs=displs)
+    # Scatter mask
+    M_loc = BitArray(undef, ny, nx_loc)
+    if r == 0
+        Mall = reshape(mask, ny, nx)
+    else
+        Mall = BitArray(undef, 0, 0)
+    end
+    MPI.Scatterv!(Mall, M_loc, 0, comm; counts=sendcounts, displs=displs)
+    # Halos
+    Ahalo = exchange_halos!(A_loc, halosize, px)
+    Mhalo = exchange_halos!(M_loc, halosize, px)
+    fld_halo = Field(Ahalo, Grid(size(Ahalo,2), size(Ahalo,1), dx, dy, px, py))
+    out_halo = coarse_grain_masked(fld_halo, kernel, Mhalo; normalize=normalize, fill_value=fill_value)
+    out_loc = Field(copy(strip_halos(out_halo.data, halosize)), Grid(nx_loc, ny, dx, dy, px, py))
+    # gather
+    recv = r == 0 ? Array{Float64,2}(undef, ny, nx) : Array{Float64,2}(undef, 0, 0)
+    MPI.Gatherv!(out_loc.data, recv, 0, comm; counts=sendcounts, displs=displs)
+    if r == 0
+        return Field(recv, Grid(nx, ny, dx, dy, px, py))
     else
         return nothing
     end

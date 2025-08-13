@@ -2,40 +2,6 @@
 
 Julia implementation scaffolding for FlowSieve-style coarse graining of turbulent flows with optional MPI parallelism.
 
-Features implemented:
-- Core types: `Grid`, `Field`, `Kernel`.
-- Real-space filters: Gaussian and boxcar kernels via `coarse_grain`.
-- FFT-based Gaussian filtering via `coarse_grain_fft` (periodic) and `coarse_grain_gaussian_separable` (fast separable real-space).
-  - `coarse_grain(...; threaded=true, tile=(bj,bi))`: threaded 2D kernel with optional cache tiling (defaults to `(64,64)` on small grids, auto-tunes on large).
-  - `coarse_grain_gaussian_separable(...; threaded=true)`: multi-threaded 1D passes (x then y) with SIMD.
-  - Tile helper: `select_tile(ny, nx, ry, rx)` returns a suggested `(bj,bi)`.
-  - Butterworth low-pass: `coarse_grain_butterworth(field, kc; order=2)`, where `kc` is cutoff wavenumber (or `(kcx,kcy)`), assuming periodic boundaries.
-  - Butterworth by length: `coarse_grain_butterworth_length(field, ℓc; order=2)`, where `ℓc` is cutoff length (or `(ℓx,ℓy)`).
-  - Butterworth by cycles-per-domain: `coarse_grain_butterworth_cycles(field, cycles; order=2)`, where `cycles` is scalar or `(cx,cy)`.
-  - Butterworth by Nyquist fraction: `coarse_grain_butterworth_nyquist(field, frac; order=2)`, where `frac` is scalar or `(fx,fy)` in (0,1].
-  - DSP-based Butterworth (IIR, zero-phase): `coarse_grain_butterworth_dsp(field, kc; order=2, zero_phase=true)` and wrappers `*_length_dsp`, `*_cycles_dsp`, `*_cells_dsp`, `*_nyquist_dsp`.
-  - Mask-aware convolution: `coarse_grain_masked(field, kernel, mask; normalize=true, fill_value=NaN)`.
-- Basic differential operators: `gradient`, `divergence`, `vorticity` (Cartesian).
-- NetCDF IO helpers: `load_netcdf_var`, `write_netcdf_field`.
-  - Vector IO: `load_vector_vars`, `write_vector_vars`.
-  - Region IO: `load_region_masks`, `write_region_stats`, `write_regions_file`.
-  - One-shot: `write_region_stats_and_masks(field, regions, stats_path; masks_path, lon, lat)`.
-  - With attributes: `write_region_stats_with_attrs`, `write_region_stats_and_masks_with_attrs`.
-  - Model adapters: `load_model_var(path; model=:auto, varname, at=:rho, t=1, z=1, curvilinear=false)` loads 2D fields from CROCO/ROMS/MITgcm NetCDF and returns a `Field` plus lon/lat metadata.
-    - `detect_model(ds)` to infer model type; metadata includes `:lon`, `:lat`, and optional `:mask`.
-    - `average_to_rho(u, v)` to average C-grid velocities to rho points (ROMS/CROCO).
-    - `average_to_tracer_mitgcm(U, V)` to average MITgcm U,V to tracer centers.
-    - `curvilinear=true` returns a `CurvilinearGrid` with per-cell `dx,dy` and detected periodicity; use `gradient_curvilinear` for metric-aware finite differences.
-  - Regridding helper: `regrid_index_bilinear(field, nx, ny)` to resample to uniform size for FFT workflows (index-space bilinear; approximate).
-- MPI utilities: `mpi_init`, `parallel_coarse_grain` for domain-decomposed filtering along x; gather/compute/scatter paths for FFT filtering (`parallel_coarse_grain_fft`) and Helmholtz-Hodge (`parallel_helmholtz_hodge`).
-  - Also: `parallel_coarse_grain_fft_distributed` for equal-slab, periodic, truly distributed FFT filtering (requires `nx % nprocs == 0` and `ny % nprocs == 0`).
-  - Real-space MPI supports a threaded local filter via `parallel_coarse_grain(...; threaded=true)`.
-- Spherical grid support: `SphericalGrid`, `gradient_sphere`, `vorticity_sphere`, and velocity conversions.
-- Spherical Helmholtz–Hodge: `helmholtz_hodge_sphere` (FFT-in-lon + FD-in-lat baseline).
-- Diagnostics: `okuboweiss`, `compute_pi` (Leonard transfer).
-  - Extra diagnostics: `ke_spectrum_isotropic`, `zonal_mean_std`, `region_mean_std`.
-  - `ke_spectrum_isotropic(...; normalize=:counts|:density|:shellarea|:energy, bins=:linear|:log)`: normalization options, linear or log bins; set `return_edges=true` for bin edges.
-
 Quick start:
 ```
 using CoarseGraining
@@ -134,3 +100,12 @@ write_region_stats_and_masks_with_attrs(
 
 Note: This is an initial scaffold. Additional FlowSieve features (spherical grids, Helmholtz projections, advanced IO and postprocessing) can be layered on with the current modular structure.
 This build already includes spherical gradients, a periodic FFT-based Helmholtz–Hodge, and MPI gather/compute/scatter wrappers; true distributed FFTs can be added later.
+
+## References
+- Germano, M. (1992). Turbulence: the filtering approach. Journal of Fluid Mechanics, 238, 325–336. doi:10.1017/S0022112092001733
+- Leonard, A. (1974). Energy Cascade in Large-Eddy Simulations of Turbulent Fluid Flows. Advances in Geophysics, 18A, 237–248. doi:10.1016/S0065-2687(08)60464-1
+- Eyink, G. L. (2005). Locality of turbulent cascades. Physical Review E, 72(6), 066302. doi:10.1103/PhysRevE.72.066302
+- Aluie, H. (2019). Coarse-grained incompressible MHD: inviscid invariants and k−4 spectrum. Physical Review Fluids, 4, 114603. doi:10.1103/PhysRevFluids.4.114603
+- Helmholtz–Hodge decomposition: Chorin, A. J., & Marsden, J. E. (1993). A Mathematical Introduction to Fluid Mechanics (3rd ed.). Springer.
+- Butterworth filtering: Butterworth, S. (1930). On the theory of filter amplifiers. Wireless Engineer, 7, 536–541.
+- FlowSieve (coarse-graining toolkit): https://github.com/janinejanoski/FlowSieve (original C++ reference implementation and documentation)

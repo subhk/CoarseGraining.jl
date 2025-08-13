@@ -26,6 +26,7 @@ if get(ENV, "RUN_MPI", "false") == "true"
         run(`mpiexec -n 4 julia --project test_mpi/runtest_fft_distributed.jl`)
         run(`mpiexec -n 5 julia --project test_mpi/runtest_realspace_compare.jl`)
         run(`mpiexec -n 6 julia --project test_mpi/runtest_fft_compare.jl`)
+        run(`mpiexec -n 3 julia --project test_mpi/runtest_masked_filter_realspace.jl`)
     catch e
         @warn "MPI smoke tests failed or mpiexec not available" error=e
     end
@@ -158,6 +159,69 @@ end
     _, Eke = ke_spectrum_isotropic(u, v; nbins=16, normalize=:energy)
     KE_real = 0.5 * mean(u.data.^2 .+ v.data.^2)
     @test isapprox(sum(Eke), KE_real; rtol=1e-6, atol=1e-8)
+end
+
+@testset "Curvilinear gradient" begin
+    nx, ny = 40, 30
+    dxval, dyval = 1000.0, 2000.0
+    lon = zeros(ny, nx); lat = zeros(ny, nx)
+    dx = fill(dxval, ny, nx); dy = fill(dyval, ny, nx)
+    g = CurvilinearGrid(lon, lat, dx, dy, true, true, 6.371e6)
+    # f(x,y) = a*x + b*y in physical coords; x = i*dx, y = j*dy
+    a, b = 2.5, -1.2
+    A = Array{Float64}(undef, ny, nx)
+    for j in 1:ny, i in 1:nx
+        A[j,i] = a * (i-1)*dxval + b * (j-1)*dyval
+    end
+    f = Field(A, g)
+    fx, fy = gradient_curvilinear(f)
+    @test isapprox(mean(fx.data), a; rtol=1e-6, atol=1e-6)
+    @test isapprox(mean(fy.data), b; rtol=1e-6, atol=1e-6)
+end
+
+@testset "Regrid index bilinear" begin
+    nx, ny = 30, 20
+    g = Grid(nx, ny, 1.0, 1.0, true, true)
+    A = [sin(0.2*i) + cos(0.15*j) for j in 1:ny, i in 1:nx]
+    f = Field(A, g)
+    f2 = regrid_index_bilinear(f, nx*2, ny*2)
+    @test size(f2.data) == (ny*2, nx*2)
+    # Downsample back should be close on average (not exact but reasonable)
+    f3 = regrid_index_bilinear(f2, nx, ny)
+    @test mean(abs.(f3.data .- A)) < 0.1
+end
+
+@testset "Regrid lon/lat nearest (identity)" begin
+    nx, ny = 16, 12
+    # Build a trivial lon/lat grid and a field
+    lon = [Float64(i) for j in 1:ny, i in 1:nx]
+    lat = [Float64(j) for j in 1:ny, i in 1:nx]
+    g = Grid(nx, ny, 1.0, 1.0, false, false)
+    A = [sin(0.1*lon[j,i]) + cos(0.07*lat[j,i]) for j in 1:ny, i in 1:nx]
+    f = Field(A, g)
+    out = regrid_lonlat_nearest(f, lon, lat, lon, lat)
+    @test out == A
+end
+
+@testset "Masked separable Gaussian" begin
+    g = Grid(32, 32, 1.0, 1.0, true, true)
+    A = randn(g.ny, g.nx)
+    f = Field(A, g)
+    mask_all = trues(g.ny, g.nx)
+    fs = coarse_grain_gaussian_separable(f, 1.0, 1.0)
+    fsm = coarse_grain_gaussian_separable_masked(f, 1.0, 1.0, mask_all)
+    @test isapprox(mean(abs.(fs.data .- fsm.data)), 0.0; atol=1e-8)
+    # If mask all false, output should be fill_value
+    mask_none = falses(g.ny, g.nx)
+    fsm2 = coarse_grain_gaussian_separable_masked(f, 1.0, 1.0, mask_none; fill_value=NaN)
+    @test all(isnan, fsm2.data)
+    # If a single source point is masked, neighbors should not pick it up
+    Aimp = zeros(g.ny, g.nx); Aimp[16,16] = 1.0
+    fim = Field(Aimp, g)
+    mask = trues(g.ny, g.nx); mask[16,16] = false
+    f_unmasked = coarse_grain_gaussian_separable(fim, 1.0, 1.0)
+    f_masked   = coarse_grain_gaussian_separable_masked(fim, 1.0, 1.0, mask)
+    @test f_unmasked.data[16,17] > f_masked.data[16,17]
 end
 
 @testset "Butterworth filter" begin
