@@ -28,15 +28,15 @@ function helmholtz_hodge(u::Field{T,G}, v::Field{T,G}) where {T<:Real,G}
     ky = fftfreq_rad(ny, dy)
     KX = reshape(kx, 1, :)
     KY = reshape(ky, :, 1)
-    k2 = @. (KX^2 + KY^2)
+    k2 = KX.^2 .+ KY.^2
     k2[1,1] = 1.0  # avoid divide by zero at k=0 (mean component)
 
     Û = fft(Float64.(u.data))
     V̂ = fft(Float64.(v.data))
 
     # Divergence and vorticity in Fourier space
-    div̂ = @. (KX .* Û + KY .* V̂) * im
-    vort̂ = @. (KX .* V̂ - KY .* Û) * im
+    div̂ = (im .* KX) .* Û .+ (im .* KY) .* V̂
+    vort̂ = (im .* KX) .* V̂ .- (im .* KY) .* Û
 
     # Solve Poisson ∇²ϕ = ∇·F in spectral space: -k^2 ϕ̂ = div̂ ⇒ ϕ̂ = -div̂/k^2
     ϕ̂ = -div̂ ./ k2
@@ -45,11 +45,11 @@ function helmholtz_hodge(u::Field{T,G}, v::Field{T,G}) where {T<:Real,G}
     ψ̂[1,1] = 0.0
 
     # Grad φ in spectral space
-    ∂xϕ̂ = @. (im*KX) * ϕ̂
-    ∂yϕ̂ = @. (im*KY) * ϕ̂
+    ∂xϕ̂ = (im .* KX) .* ϕ̂
+    ∂yϕ̂ = (im .* KY) .* ϕ̂
     # Rot ψ = (∂yψ, -∂xψ)
-    ∂yψ̂ = @. (im*KY) * ψ̂
-    ∂xψ̂ = @. (im*KX) * ψ̂
+    ∂yψ̂ = (im .* KY) .* ψ̂
+    ∂xψ̂ = (im .* KX) .* ψ̂
 
     upot = real(ifft(∂xϕ̂))
     vpot = real(ifft(∂yϕ̂))
