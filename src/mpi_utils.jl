@@ -418,11 +418,7 @@ end
 
 end # module MPIUtils
 
-using .MPIUtils: mpi_init, mpi_finalize, mpi_enabled, mpi_rank, mpi_size, parallel_coarse_grain, parallel_coarse_grain_fft, parallel_helmholtz_hodge
+using .MPIUtils: mpi_init, mpi_finalize, mpi_enabled, mpi_rank, mpi_size, parallel_coarse_grain, parallel_coarse_grain_fft, parallel_helmholtz_hodge, parallel_coarse_grain_fft_distributed, parallel_coarse_grain_masked
 export mpi_init, mpi_finalize, mpi_enabled, mpi_rank, mpi_size,
-       parallel_coarse_grain, parallel_coarse_grain_fft, parallel_helmholtz_hodge
-end
-
-end # module MPIUtils
-
-using .MPIUtils: mpi_init, mpi_finalize, mpi_enabled, mpi_rank, mpi_size, parallel_coarse_grain
+       parallel_coarse_grain, parallel_coarse_grain_fft, parallel_helmholtz_hodge,
+       parallel_coarse_grain_fft_distributed, parallel_coarse_grain_masked
