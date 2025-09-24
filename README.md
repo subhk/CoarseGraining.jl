@@ -191,38 +191,16 @@ save_multiresolution_data("ocean_multires.nc", fields, grids)
 restored_fields, restored_grids = load_multiresolution_data("ocean_multires.nc")
 ```
 
-## Documentation
-
- **[Full Documentation](https://subhk.github.io/CoarseGraining.jl/stable/)**
-
-- [Installation Guide](https://subhk.github.io/CoarseGraining.jl/stable/installation/)
-- [Quick Start Tutorial](https://subhk.github.io/CoarseGraining.jl/stable/quickstart/)
-- [Advanced Features](https://subhk.github.io/CoarseGraining.jl/stable/advanced_features/) - New FlowSieve-equivalent capabilities
-- [API Reference](https://subhk.github.io/CoarseGraining.jl/stable/api/)
-
-## What's New
-
-This package now provides **complete FlowSieve feature parity** with major enhancements:
-
-- **Spherical Helmholtz decomposition** with iterative solvers  
-- **Complete energy budget analysis** following Aluie et al. (2018)  
-- **Sophisticated boundary handling** with land-avoiding stencils  
-- **Multi-resolution workflows** for 10-100x computational speedup  
-- **Realistic ocean modeling** capabilities for coastal domains
-
 ## References
 
-### Core Theory
 - **Germano, M.** (1992). Turbulence: the filtering approach. *Journal of Fluid Mechanics*, 238, 325–336. [doi:10.1017/S0022112092001733](https://doi.org/10.1017/S0022112092001733)
+
 - **Leonard, A.** (1974). Energy Cascade in Large-Eddy Simulations of Turbulent Fluid Flows. *Advances in Geophysics*, 18A, 237–248. [doi:10.1016/S0065-2687(08)60464-1](https://doi.org/10.1016/S0065-2687(08)60464-1)
+
 - **Aluie, H.** (2018). Scale decomposition in compressible turbulence. *Physics of Fluids*, 30, 025104. [doi:10.1063/1.5009001](https://doi.org/10.1063/1.5009001)
 
-### Advanced Methods  
 - **Eyink, G. L.** (2005). Locality of turbulent cascades. *Physical Review E*, 72(6), 066302. [doi:10.1103/PhysRevE.72.066302](https://doi.org/10.1103/PhysRevE.72.066302)
+
 - **Aluie, H.** (2019). Coarse-grained incompressible MHD: inviscid invariants and k⁻⁴ spectrum. *Physical Review Fluids*, 4, 114603. [doi:10.1103/PhysRevFluids.4.114603](https://doi.org/10.1103/PhysRevFluids.4.114603)
 
-### Implementation References
-- **Helmholtz–Hodge decomposition**: Chorin, A. J., & Marsden, J. E. (1993). *A Mathematical Introduction to Fluid Mechanics* (3rd ed.). Springer.
-- **Butterworth filtering**: Butterworth, S. (1930). On the theory of filter amplifiers. *Wireless Engineer*, 7, 536–541.
 - **FlowSieve**: Original C++ implementation at [github.com/janinejanoski/FlowSieve](https://github.com/janinejanoski/FlowSieve)
-# Documentation Update
