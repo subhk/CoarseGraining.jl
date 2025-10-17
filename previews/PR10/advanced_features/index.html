@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Advanced Features · CoarseGraining.jl</title><meta name="title" content="Advanced Features · CoarseGraining.jl"/><meta property="og:title" content="Advanced Features · CoarseGraining.jl"/><meta property="twitter:title" content="Advanced Features · CoarseGraining.jl"/><meta name="description" content="Documentation for CoarseGraining.jl."/><meta property="og:description" content="Documentation for CoarseGraining.jl."/><meta property="twitter:description" content="Documentation for CoarseGraining.jl."/><meta property="og:url" content="https://subhk.github.io/CoarseGraining.jl/stable/advanced_features/"/><meta property="twitter:url" content="https://subhk.github.io/CoarseGraining.jl/stable/advanced_features/"/><link rel="canonical" href="https://subhk.github.io/CoarseGraining.jl/stable/advanced_features/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script><link href="../assets/custom.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">CoarseGraining.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><a class="tocitem" href="../installation/">Installation</a></li><li><a class="tocitem" href="../quickstart/">Quick Start</a></li><li><a class="tocitem" href="../theory/">Theory</a></li><li><a class="tocitem" href="../filters/">Filters</a></li><li class="is-active"><a class="tocitem" href>Advanced Features</a><ul class="internal"><li><a class="tocitem" href="#Spherical-Helmholtz-Decomposition"><span>Spherical Helmholtz Decomposition</span></a></li><li><a class="tocitem" href="#Complete-Energy-Budget-Analysis"><span>Complete Energy Budget Analysis</span></a></li><li><a class="tocitem" href="#Sophisticated-Boundary-Handling"><span>Sophisticated Boundary Handling</span></a></li><li><a class="tocitem" href="#Multi-Resolution-Workflows"><span>Multi-Resolution Workflows</span></a></li><li><a class="tocitem" href="#Ocean-Modeling-Applications"><span>Ocean Modeling Applications</span></a></li><li><a class="tocitem" href="#Performance-Tips"><span>Performance Tips</span></a></li><li><a class="tocitem" href="#Theory-Background"><span>Theory Background</span></a></li></ul></li><li><a class="tocitem" href="../mpi/">MPI &amp; Parallel</a></li><li><a class="tocitem" href="../io/">IO &amp; Models</a></li><li><a class="tocitem" href="../regridding/">Regridding</a></li><li><a class="tocitem" href="../spherical/">Spherical &amp; Curvilinear</a></li><li><a class="tocitem" href="../diagnostics/">Diagnostics</a></li><li><a class="tocitem" href="../api/">API Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Advanced Features</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Advanced Features</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/subhk/CoarseGraining.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/subhk/CoarseGraining.jl/blob/main/docs/src/advanced_features.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Advanced-Features"><a class="docs-heading-anchor" href="#Advanced-Features">Advanced Features</a><a id="Advanced-Features-1"></a><a class="docs-heading-anchor-permalink" href="#Advanced-Features" title="Permalink"></a></h1><p>CoarseGraining.jl provides advanced FlowSieve-equivalent capabilities for sophisticated ocean modeling and turbulence analysis.</p><h2 id="Spherical-Helmholtz-Decomposition"><a class="docs-heading-anchor" href="#Spherical-Helmholtz-Decomposition">Spherical Helmholtz Decomposition</a><a id="Spherical-Helmholtz-Decomposition-1"></a><a class="docs-heading-anchor-permalink" href="#Spherical-Helmholtz-Decomposition" title="Permalink"></a></h2><p>For large spherical domains, use iterative solvers that are more memory-efficient than FFT methods:</p><pre><code class="language-julia hljs"># Set up spherical domain  
+lon = range(0, 2π, length=360)
+lat = range(-π/2, π/2, length=180)
+grid = SphericalGrid(collect(lon), collect(lat), 6.371e6, true)
+
+uE = Field(velocity_east, grid)
+vN = Field(velocity_north, grid)
+
+# Iterative spherical Helmholtz decomposition
+uE_div, vN_div, uE_pot, vN_pot, φ, ψ = helmholtz_hodge_sphere_iterative(
+    uE, vN; max_iter=1000, tol=1e-6, method=:cg)
+
+# For very large grids, use multi-grid acceleration
+uE_div, vN_div, uE_pot, vN_pot, φ, ψ = helmholtz_hodge_sphere_multigrid(
+    uE, vN; levels=4, max_iter=100)</code></pre><p><strong>Key features:</strong></p><ul><li>Memory-efficient sparse matrix approach</li><li>Choice of iterative solvers (CG, GMRES, BiCGStab)  </li><li>Proper spherical metric factors</li><li>Multi-grid acceleration for very large problems</li></ul><h2 id="Complete-Energy-Budget-Analysis"><a class="docs-heading-anchor" href="#Complete-Energy-Budget-Analysis">Complete Energy Budget Analysis</a><a id="Complete-Energy-Budget-Analysis-1"></a><a class="docs-heading-anchor-permalink" href="#Complete-Energy-Budget-Analysis" title="Permalink"></a></h2><p>Compute all terms in the kinetic energy equation following Aluie et al. (2018):</p><pre><code class="language-julia hljs">K = gaussian_kernel(3.0, 3.0)  # Filter scale
+
+# Complete energy budget: ∂KE/∂t + ∇·J = -Π - ε + Bc + F
+budget = compute_full_energy_budget(u, v, K;
+                                   pressure=P,        # Pressure field
+                                   ρ=density,         # Density field  
+                                   w=w_velocity,      # Vertical velocity
+                                   forcing_u=wind_u,  # External forcing
+                                   forcing_v=wind_v,
+                                   ν=1e-3,            # Viscosity
+                                   g=9.81, ρ₀=1025.0)
+
+# Access individual budget terms
+KE = budget.kinetic_energy           # Kinetic energy density
+Π = budget.leonard_transfer          # Scale transfer (Leonard term)
+transport = budget.transport_total   # Total transport divergence  
+dissipation = budget.dissipation_total  # Viscous dissipation
+baroclinic = budget.baroclinic_conversion  # Baroclinic conversion
+forcing = budget.forcing_work        # External forcing work</code></pre><p><strong>Individual diagnostic functions:</strong></p><pre><code class="language-julia hljs"># Energy transport terms
+J_coarse, J_pressure, J_subgrid, div_J = compute_energy_transport(u, v, K; pressure=P)
+
+# Baroclinic energy conversion  
+Pi_bc, APE_flux = compute_baroclinic_transfer(u, v, ρ, w, K; g=9.81)
+
+# Viscous dissipation (resolved + subgrid)
+ε_resolved, ε_subgrid, ε_total = compute_viscous_dissipation(u, v, K; ν=1e-6)
+
+# Spectral analysis
+k, E_k = compute_kinetic_energy_spectra(u, v; method=:isotropic)</code></pre><h2 id="Sophisticated-Boundary-Handling"><a class="docs-heading-anchor" href="#Sophisticated-Boundary-Handling">Sophisticated Boundary Handling</a><a id="Sophisticated-Boundary-Handling-1"></a><a class="docs-heading-anchor-permalink" href="#Sophisticated-Boundary-Handling" title="Permalink"></a></h2><p>Handle complex coastal boundaries and land masks with adaptive filtering:</p><pre><code class="language-julia hljs"># Load land/water mask (true = water, false = land)
+land_mask = load_coastline_mask(&quot;coastlines.nc&quot;)
+
+# Adaptive filtering with land-avoiding stencils
+K = gaussian_kernel(2.0, 2.0)
+filtered = coarse_grain_adaptive(field, K;
+                                mask=land_mask,
+                                boundary_mode=:adaptive,    # Use physical distances
+                                deform_around_land=true,    # Avoid land contamination
+                                kernel_padding=2.0)         # Integration scale factor
+
+# For spherical grids, uses great circle distances
+# For curvilinear grids, uses local metric information</code></pre><p><strong>Boundary extension methods:</strong></p><pre><code class="language-julia hljs"># Extend field to reduce edge effects
+extended = extend_field_to_boundaries(field, 5; method=:mirror)
+# Methods: :mirror, :extrapolate, :zero, :periodic</code></pre><p><strong>Adaptive integration bounds:</strong></p><pre><code class="language-julia hljs"># Compute physical distance-based bounds (used internally)
+j_bounds, i_bounds = compute_adaptive_bounds(grid, j, i, kernel, padding, distance_func)</code></pre><h2 id="Multi-Resolution-Workflows"><a class="docs-heading-anchor" href="#Multi-Resolution-Workflows">Multi-Resolution Workflows</a><a id="Multi-Resolution-Workflows-1"></a><a class="docs-heading-anchor-permalink" href="#Multi-Resolution-Workflows" title="Permalink"></a></h2><p>Dramatically reduce computational cost for large problems using hierarchical coarsen→solve→refine strategy:</p><pre><code class="language-julia hljs"># Automatic hierarchical Helmholtz decomposition
+uE_div, vN_div, uE_pot, vN_pot, φ, ψ = hierarchical_helmholtz_workflow(
+    uE, vN; levels=4, max_iter_per_level=50)
+
+# Manual workflow control
+grids = create_multiresolution_hierarchy(base_grid, 4; coarsening_factor=2)
+
+# Coarsen fields
+uE_coarse = coarsen_field(uE, 4; method=:area_average)  # Conservative averaging
+vN_coarse = coarsen_field(vN, 4; method=:subsample)     # Simple subsampling
+
+# Solve on coarse grid
+uE_div_c, vN_div_c, _, _, φ_c, ψ_c = helmholtz_hodge_sphere_iterative(uE_coarse, vN_coarse)
+
+# Refine solution back to fine grid  
+φ_fine = refine_field(φ_c, base_grid; method=:bilinear)
+ψ_fine = refine_field(ψ_c, base_grid; method=:bicubic)</code></pre><p><strong>Data persistence for workflows:</strong></p><pre><code class="language-julia hljs"># Save multi-resolution data for later use
+save_multiresolution_data(&quot;workflow.nc&quot;, [φ_coarse, φ_fine], [coarse_grid, fine_grid])
+
+# Load workflow data
+fields, grids = load_multiresolution_data(&quot;workflow.nc&quot;)</code></pre><p><strong>Performance benefits:</strong></p><ul><li>10-100x speedup for large grids</li><li>Reduced memory requirements  </li><li>Maintained solution accuracy</li></ul><h2 id="Ocean-Modeling-Applications"><a class="docs-heading-anchor" href="#Ocean-Modeling-Applications">Ocean Modeling Applications</a><a id="Ocean-Modeling-Applications-1"></a><a class="docs-heading-anchor-permalink" href="#Ocean-Modeling-Applications" title="Permalink"></a></h2><h3 id="Regional-Ocean-Analysis"><a class="docs-heading-anchor" href="#Regional-Ocean-Analysis">Regional Ocean Analysis</a><a id="Regional-Ocean-Analysis-1"></a><a class="docs-heading-anchor-permalink" href="#Regional-Ocean-Analysis" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Gulf Stream region with coastlines
+lon = range(deg2rad(-80), deg2rad(-60), length=200)
+lat = range(deg2rad(30), deg2rad(50), length=200)
+ocean_grid = SphericalGrid(collect(lon), collect(lat), 6.371e6, true)
+
+# Load velocity and create land mask
+uE = load_ocean_velocity(&quot;gulf_stream_u.nc&quot;, ocean_grid)
+vN = load_ocean_velocity(&quot;gulf_stream_v.nc&quot;, ocean_grid)
+coastline = load_coastline_mask(&quot;coastlines.nc&quot;, ocean_grid)
+
+# Adaptive filtering respecting coastlines
+K = gaussian_kernel(3.0, 3.0)  # ~165 km scale
+uE_filtered = coarse_grain_adaptive(uE, K; mask=coastline, boundary_mode=:adaptive)
+vN_filtered = coarse_grain_adaptive(vN, K; mask=coastline, boundary_mode=:adaptive)
+
+# Spherical Helmholtz decomposition
+uE_div, vN_div, uE_pot, vN_pot, φ, ψ = helmholtz_hodge_sphere_iterative(
+    uE_filtered, vN_filtered; max_iter=500, tol=1e-6)</code></pre><h3 id="High-Resolution-Global-Analysis"><a class="docs-heading-anchor" href="#High-Resolution-Global-Analysis">High-Resolution Global Analysis</a><a id="High-Resolution-Global-Analysis-1"></a><a class="docs-heading-anchor-permalink" href="#High-Resolution-Global-Analysis" title="Permalink"></a></h3><pre><code class="language-julia hljs"># 0.1° global ocean model (3600×1800 grid)
+# Use multi-resolution workflow for efficiency
+uE_div, vN_div, uE_pot, vN_pot, φ, ψ = hierarchical_helmholtz_workflow(
+    uE_global, vN_global; levels=5, max_iter_per_level=100)
+
+# Complete energy budget analysis
+budget = compute_full_energy_budget(uE_global, vN_global, K;
+                                   pressure=pressure_global,
+                                   ρ=density_global,
+                                   ν=1e-3)
+
+# Identify energy transfer hotspots
+energy_transfer_map = budget.leonard_transfer
+upscale_regions = energy_transfer_map.data .&lt; 0  # Energy to larger scales
+downscale_regions = energy_transfer_map.data .&gt; 0  # Energy to smaller scales</code></pre><h3 id="Mesoscale-Eddy-Analysis"><a class="docs-heading-anchor" href="#Mesoscale-Eddy-Analysis">Mesoscale Eddy Analysis</a><a id="Mesoscale-Eddy-Analysis-1"></a><a class="docs-heading-anchor-permalink" href="#Mesoscale-Eddy-Analysis" title="Permalink"></a></h3><pre><code class="language-julia hljs"># Track energy pathways in eddies
+eddies_mask = identify_eddies(vorticity_field)  # Your eddy detection
+
+# Energy budget within eddies
+eddy_budget = compute_full_energy_budget(u, v, K; mask=eddies_mask)
+
+# Compute eddy transport
+J_coarse, J_pressure, J_subgrid, _ = compute_energy_transport(u, v, K)
+eddy_transport = J_subgrid.data[eddies_mask]
+
+# Spectral analysis of eddy field
+k, E_k = compute_kinetic_energy_spectra(u_eddies, v_eddies)</code></pre><h2 id="Performance-Tips"><a class="docs-heading-anchor" href="#Performance-Tips">Performance Tips</a><a id="Performance-Tips-1"></a><a class="docs-heading-anchor-permalink" href="#Performance-Tips" title="Permalink"></a></h2><ol><li><p><strong>Choose appropriate methods:</strong></p><ul><li>Real-space filters for non-periodic domains</li><li>Multi-resolution for large problems  </li><li>Adaptive boundaries for coastal regions</li></ul></li><li><p><strong>Memory management:</strong></p><ul><li>Use hierarchical workflows for &gt;1000² grids</li><li>Tile processing for cache efficiency</li><li>Sparse iterative solvers for Helmholtz</li></ul></li><li><p><strong>Accuracy vs. speed:</strong></p><ul><li>Increase <code>max_iter</code> for higher accuracy</li><li>Use multi-grid for fastest convergence</li><li>Conservative coarsening preserves physics</li></ul></li><li><p><strong>Oceanic applications:</strong></p><ul><li>Always use land masks for realistic domains</li><li>Prefer spherical operators for global/basin scales</li><li>Account for boundary effects in analysis</li></ul></li></ol><h2 id="Theory-Background"><a class="docs-heading-anchor" href="#Theory-Background">Theory Background</a><a id="Theory-Background-1"></a><a class="docs-heading-anchor-permalink" href="#Theory-Background" title="Permalink"></a></h2><p>The advanced features implement:</p><ul><li><strong>Aluie et al. (2018)</strong>: Complete kinetic energy budget methodology</li><li><strong>FlowSieve methods</strong>: Sophisticated boundary handling and multi-resolution</li><li><strong>Iterative solvers</strong>: Memory-efficient alternatives to direct methods</li><li><strong>Physical conservation</strong>: Proper treatment of coastlines and boundaries</li></ul><p>See the Theory page for mathematical details and the original FlowSieve papers for methodology validation.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../filters/">« Filters</a><a class="docs-footer-nextpage" href="../mpi/">MPI &amp; Parallel »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Friday 17 October 2025 18:29">Friday 17 October 2025</span>. Using Julia version 1.10.10.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
