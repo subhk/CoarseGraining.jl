@@ -19,10 +19,12 @@ end
 function write_netcdf_field(path::AbstractString, varname::AbstractString, field::Field)
     ny, nx = size(field.data)
     ds = NCDataset(path, "c")
-    defDim(ds, "y", ny)
     defDim(ds, "x", nx)
-    v = defVar(ds, varname, eltype(field.data), ("y", "x"))
-    v[:] = permutedims(field.data, (1,2))
+    defDim(ds, "y", ny)
+    # Store on-disk as (x, y) so load_netcdf_var (which transposes) round-trips,
+    # matching the CF/model (lon, lat) convention.
+    v = defVar(ds, varname, eltype(field.data), ("x", "y"))
+    v[:, :] = permutedims(field.data, (2, 1))
     close(ds)
     return path
 end
@@ -30,9 +32,9 @@ end
 function read_attr(path::AbstractString, name::AbstractString; varname::Union{String,Nothing}=nothing)
     ds = NCDataset(path)
     val = if varname === nothing
-        attget(ds, name)
+        ds.attrib[name]
     else
-        attget(ds[varname], name)
+        ds[varname].attrib[name]
     end
     close(ds)
     return val
@@ -41,9 +43,9 @@ end
 function write_attr(path::AbstractString, name::AbstractString, value; varname::Union{String,Nothing}=nothing)
     ds = NCDataset(path, "a")
     if varname === nothing
-        attput(ds, name, value)
+        ds.attrib[name] = value
     else
-        attput(ds[varname], name, value)
+        ds[varname].attrib[name] = value
     end
     close(ds)
     return nothing
@@ -69,12 +71,12 @@ end
 function write_vector_vars(path::AbstractString, uname::String, vname::String, u::Field, v::Field)
     ny, nx = size(u.data)
     ds = NCDataset(path, "c")
-    defDim(ds, "y", ny)
     defDim(ds, "x", nx)
-    vu = defVar(ds, uname, eltype(u.data), ("y", "x"))
-    vv = defVar(ds, vname, eltype(v.data), ("y", "x"))
-    vu[:] = permutedims(u.data, (1,2))
-    vv[:] = permutedims(v.data, (1,2))
+    defDim(ds, "y", ny)
+    vu = defVar(ds, uname, eltype(u.data), ("x", "y"))
+    vv = defVar(ds, vname, eltype(v.data), ("x", "y"))
+    vu[:, :] = permutedims(u.data, (2, 1))
+    vv[:, :] = permutedims(v.data, (2, 1))
     close(ds)
     return path
 end
@@ -128,8 +130,8 @@ function write_regions_file(path::AbstractString, regions::Dict{String,BitArray{
     for name in names
         mask = regions[name]
         @assert size(mask) == (ny, nx)
-        v = defVar(ds, name, Int8, ("y", "x"))
-        v[:] = Int8.(mask)
+        v = defVar(ds, name, Int8, ("x", "y"))
+        v[:, :] = permutedims(Int8.(mask), (2, 1))
     end
     close(ds)
     return path
@@ -149,12 +151,12 @@ function write_region_stats_with_attrs(path::AbstractString, stats::Dict{String,
     vmean[:]  = means
     vstd[:]   = stds
     for (k, v) in global_attrs
-        attput(ds, k, v)
+        ds.attrib[k] = v
     end
     for (var, attrs) in var_attrs
         if haskey(ds, var)
             for (k, v) in attrs
-                attput(ds[var], k, v)
+                ds[var].attrib[k] = v
             end
         end
     end
@@ -170,7 +172,7 @@ function write_region_stats_and_masks_with_attrs(f::Field, regions::Dict{String,
         if !isempty(masks_attrs)
             ds = NCDataset(masks_path, "a")
             for (k, v) in masks_attrs
-                attput(ds, k, v)
+                ds.attrib[k] = v
             end
             close(ds)
         end

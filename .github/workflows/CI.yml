@@ -31,17 +31,8 @@ jobs:
           - windows-latest
         arch:
           - x64
-        exclude:
-          # Test 32-bit only on Linux
-          - os: macOS-latest
-            arch: x86
-          - os: windows-latest
-            arch: x86
-        include:
-          # Test 32-bit on Linux
-          - version: '1.10'
-            os: ubuntu-latest
-            arch: x86
+          # 32-bit (x86) dropped: AlgebraicMultigrid → LinearSolve/SciMLBase
+          # does not reliably build on 32-bit.
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v1
@@ -50,8 +41,15 @@ jobs:
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1
+      # Instrument + upload coverage from a single representative job only.
       - uses: julia-actions/julia-runtest@v1
+        with:
+          coverage: ${{ matrix.version == '1.11' && matrix.os == 'ubuntu-latest' }}
       - uses: julia-actions/julia-processcoverage@v1
-      - uses: codecov/codecov-action@v3
+        if: matrix.version == '1.11' && matrix.os == 'ubuntu-latest'
+      - uses: codecov/codecov-action@v5
+        if: matrix.version == '1.11' && matrix.os == 'ubuntu-latest'
         with:
           files: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false

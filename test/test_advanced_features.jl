@@ -163,14 +163,15 @@ using Statistics
         uE_refined = refine_field(uE_coarse, base_grid; method=:bilinear)
         @test size(uE_refined.data) == (ny, nx)
         
-        # Test hierarchical Helmholtz (small problem)
-        small_nx, small_ny = 16, 8
-        small_lon = lon[1:4:end]
-        small_lat = lat[1:4:end]
+        # Test hierarchical Helmholtz (small problem). Subsample by 2 so the grid
+        # (32 lon × 16 lat) is large enough to actually coarsen to levels=2.
+        small_nx, small_ny = 32, 16
+        small_lon = lon[1:2:end]
+        small_lat = lat[1:2:end]
         small_grid = SphericalGrid(collect(small_lon), collect(small_lat), 6.371e6, true)
-        
-        small_uE = Field(uE_data[1:4:end, 1:4:end], small_grid)
-        small_vN = Field(vN_data[1:4:end, 1:4:end], small_grid)
+
+        small_uE = Field(uE_data[1:2:end, 1:2:end], small_grid)
+        small_vN = Field(vN_data[1:2:end, 1:2:end], small_grid)
         
         @test_nowarn begin
             uE_div, vN_div, uE_pot, vN_pot, φ, ψ = 
@@ -247,8 +248,8 @@ end
     @testset "Complete Ocean Analysis Workflow" begin
         # Simplified version of the complete workflow
         
-        # Small test domain
-        nx, ny = 16, 8
+        # Small test domain (16×16 so the multi-resolution step can reach levels=2)
+        nx, ny = 16, 16
         lon = range(deg2rad(-70), deg2rad(-60), length=nx)
         lat = range(deg2rad(35), deg2rad(45), length=ny)
         grid = SphericalGrid(collect(lon), collect(lat), 6.371e6, true)

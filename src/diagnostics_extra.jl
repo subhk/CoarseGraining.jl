@@ -10,7 +10,7 @@ export ke_spectrum_isotropic, zonal_mean_std, region_mean_std, write_region_stat
 Compute isotropic KE spectrum E(k) for periodic Cartesian grid via 2D FFT and radial binning.
 Returns (k_centers, E_k).
 """
-function ke_spectrum_isotropic(u::Field{T,G}, v::Field{T,G}; nbins::Int=nothing, normalize::Symbol=:counts, return_edges::Bool=false, bins::Symbol=:linear) where {T<:Real,G}
+function ke_spectrum_isotropic(u::Field{T,G}, v::Field{T,G}; nbins::Union{Int,Nothing}=nothing, normalize::Symbol=:counts, return_edges::Bool=false, bins::Symbol=:linear) where {T<:Real,G}
     @assert u.grid isa Grid "ke_spectrum_isotropic supports Cartesian Grid"
     @assert u.grid === v.grid
     ny, nx = size(u.data)

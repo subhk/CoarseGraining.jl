@@ -2,6 +2,7 @@ using ..CoarseGraining: Field, SphericalGrid
 using LinearAlgebra
 using SparseArrays
 using IterativeSolvers
+using AlgebraicMultigrid: ruge_stuben, aspreconditioner
 
 export helmholtz_hodge_sphere_iterative, poisson_sphere_solve_iterative, 
        helmholtz_hodge_sphere_multigrid, coarsen_spherical_grid, refine_spherical_grid
@@ -28,40 +29,39 @@ Returns:
 - `φ`: Velocity potential
 - `ψ`: Stream function
 """
-function helmholtz_hodge_sphere_iterative(uE::Field{T,G}, vN::Field{T,G}; 
-                                        max_iter::Int=1000, tol::Real=1e-6, 
-                                        method::Symbol=:cg) where {T<:Real,G<:SphericalGrid}
+function helmholtz_hodge_sphere_iterative(uE::Field{T,G}, vN::Field{T,G};
+                                        max_iter::Int=1000, tol::Real=1e-6,
+                                        method::Symbol=:cg,
+                                        solver::Symbol=:direct) where {T<:Real,G<:SphericalGrid}
     grid = uE.grid
     @assert grid === vN.grid
-    ny, nx = length(grid.lat), length(grid.lon)
-    a = grid.a
-    
-    # Build spherical Laplacian operator
-    L = build_spherical_laplacian(grid)
-    
+
     # Compute divergence and vorticity
     div = divergence_sphere(uE, vN)
     vort = vorticity_sphere(uE, vN)
-    
-    # Solve Poisson equations: ∇²φ = div, ∇²ψ = vort
-    φ_vec = solve_poisson_iterative(L, div.data[:], method, max_iter, tol)
-    ψ_vec = solve_poisson_iterative(L, vort.data[:], method, max_iter, tol)
-    
-    φ = Field(reshape(φ_vec, ny, nx), grid)
-    ψ = Field(reshape(ψ_vec, ny, nx), grid)
-    
-    # Compute velocity components from potentials
-    ∇φ_E, ∇φ_N = gradient_sphere(φ)
-    ∇ψ_E, ∇ψ_N = gradient_sphere(ψ)
-    
+
+    # Solve the Poisson equations ∇²φ = div, ∇²ψ = vort.
+    #   solver = :direct (default) — FFT-in-longitude + tridiagonal-in-latitude;
+    #            exact, fast, non-uniform-aware in latitude.
+    #   solver = :amg — algebraic-multigrid-preconditioned CG on the symmetric
+    #            stiffness; grid-size-independent iteration counts for large grids.
+    # `method` is retained for API stability.
+    if solver === :amg || solver === :iterative
+        φ = poisson_sphere_solve_iterative(div; maxiter=max_iter, reltol=tol)
+        ψ = poisson_sphere_solve_iterative(vort; maxiter=max_iter, reltol=tol)
+    else
+        φ = poisson_sphere_solve(div)
+        ψ = poisson_sphere_solve(vort)
+    end
+
     # Irrotational part: u_pot = ∇φ
-    uE_pot = ∇φ_E
-    vN_pot = ∇φ_N
-    
-    # Divergence-free part: u_div = ẑ × ∇ψ = (∂ψ/∂N, -∂ψ/∂E)
-    uE_div = Field(∇ψ_N.data, grid)   # ∂ψ/∂N
-    vN_div = Field(-∇ψ_E.data, grid)  # -∂ψ/∂E
-    
+    uE_pot, vN_pot = gradient_sphere(φ)
+
+    # Divergence-free part as the residual u − ∇φ → exact reconstruction
+    # (u = u_pot + u_div). ψ is retained as the streamfunction output.
+    uE_div = Field(uE.data .- uE_pot.data, grid)
+    vN_div = Field(vN.data .- vN_pot.data, grid)
+
     return uE_div, vN_div, uE_pot, vN_pot, φ, ψ
 end
 
@@ -80,34 +80,44 @@ function build_spherical_laplacian(grid::SphericalGrid; boundary_condition::Symb
     
     lat = grid.lat
     lon = grid.lon
-    dλ = mean(diff(lon))
-    dφ = mean(diff(lat))
-    
+    dλ = mean(diff(lon))   # longitude assumed uniform
+
     # Pre-allocate sparse matrix components
     I = Int[]
     J = Int[]
     V = Float64[]
     
-    # Helper function to convert (j,i) to linear index
-    idx(j, i) = (j-1)*nx + i
+    # (j,i) → linear index, column-major to match vec(data)/reshape(·, ny, nx)
+    idx(j, i) = (i-1)*ny + j
     
     for j in 1:ny
         φ = lat[j]
         cos_φ = cos(φ)
-        cos_φ_prev = j > 1 ? cos(lat[j-1]) : cos_φ
-        cos_φ_next = j < ny ? cos(lat[j+1]) : cos_φ
-        
+        # Latitude spacings (non-uniform): cell faces at j±1/2.
+        Δp = j < ny ? (lat[j+1] - lat[j]) : (lat[j] - lat[j-1])
+        Δm = j > 1  ? (lat[j] - lat[j-1]) : (lat[j+1] - lat[j])
+        Δc = j == 1 ? Δp : (j == ny ? Δm : (Δp + Δm) / 2)   # cell width
+        # Meridional flux coefficients at the FACES (j±1/2): latitude-midpoint cos,
+        # not neighbour cos (neighbour-cos breaks flux telescoping → O(1) error).
+        # 0 ⇒ Neumann zero-flux at the latitude boundary.
+        cos_prev = j > 1 ? cos((lat[j] + lat[j-1]) / 2) : 0.0
+        cos_next = j < ny ? cos((lat[j] + lat[j+1]) / 2) : 0.0
+        coefm = cos_prev / (a^2 * cos_φ * Δc * Δm)   # j-1 coupling
+        coefp = cos_next / (a^2 * cos_φ * Δc * Δp)   # j+1 coupling
+        diag_φ = -(coefm + coefp)
+        if boundary_condition == :dirichlet && (j == 1 || j == ny)
+            # Fixed-value (ghost f = 0) flux through the missing boundary face.
+            diag_φ -= 1.0 / (a^2 * Δc * (j == 1 ? Δp : Δm))
+        end
+        # Zonal term is (1/(a²cos²φ)) ∂²/∂λ² — note cos²φ.
+        λ_diag = -2.0 / (a^2 * cos_φ^2 * dλ^2)
+        λ_off  =  1.0 / (a^2 * cos_φ^2 * dλ^2)
+
         for i in 1:nx
             row = idx(j, i)
-            
-            # Central coefficient
-            λ_coeff = -2.0 / (a^2 * cos_φ * dλ^2)
-            φ_coeff = -(cos_φ_prev + cos_φ_next) / (a^2 * cos_φ * dφ^2)
-            central_coeff = λ_coeff + φ_coeff
-            
-            push!(I, row); push!(J, row); push!(V, central_coeff)
-            
-            # Longitude derivatives (∂²/∂λ²)
+            push!(I, row); push!(J, row); push!(V, λ_diag + diag_φ)
+
+            # Longitude derivatives (∂²/∂λ²), periodic or clamped
             if grid.periodic_lon
                 i_prev = i == 1 ? nx : i-1
                 i_next = i == nx ? 1 : i+1
@@ -115,86 +125,87 @@ function build_spherical_laplacian(grid::SphericalGrid; boundary_condition::Symb
                 i_prev = max(1, i-1)
                 i_next = min(nx, i+1)
             end
-            
-            λ_coeff_off = 1.0 / (a^2 * cos_φ * dλ^2)
             if i_prev != i
-                push!(I, row); push!(J, idx(j, i_prev)); push!(V, λ_coeff_off)
+                push!(I, row); push!(J, idx(j, i_prev)); push!(V, λ_off)
             end
             if i_next != i
-                push!(I, row); push!(J, idx(j, i_next)); push!(V, λ_coeff_off)
+                push!(I, row); push!(J, idx(j, i_next)); push!(V, λ_off)
             end
-            
-            # Latitude derivatives (1/cosφ ∂/∂φ(cosφ ∂/∂φ))
+
+            # Latitude derivatives (Neumann unless a coupling exists)
             if j > 1
-                φ_coeff_prev = cos_φ_prev / (a^2 * cos_φ * dφ^2)
-                push!(I, row); push!(J, idx(j-1, i)); push!(V, φ_coeff_prev)
-            else
-                # Boundary condition at south pole
-                if boundary_condition == :neumann
-                    # Zero gradient: ∂f/∂φ = 0
-                    # This is handled by not adding the boundary term
-                elseif boundary_condition == :dirichlet
-                    # Fixed value (zero): f = 0
-                    # Modify central coefficient
-                    V[end-2] += cos_φ_prev / (a^2 * cos_φ * dφ^2)
-                end
+                push!(I, row); push!(J, idx(j-1, i)); push!(V, coefm)
             end
-            
             if j < ny
-                φ_coeff_next = cos_φ_next / (a^2 * cos_φ * dφ^2)
-                push!(I, row); push!(J, idx(j+1, i)); push!(V, φ_coeff_next)
-            else
-                # Boundary condition at north pole
-                if boundary_condition == :neumann
-                    # Zero gradient
-                elseif boundary_condition == :dirichlet
-                    # Fixed value (zero)
-                    V[end-3] += cos_φ_next / (a^2 * cos_φ * dφ^2)
-                end
+                push!(I, row); push!(J, idx(j+1, i)); push!(V, coefp)
             end
         end
     end
     
-    # Create sparse matrix
+    # Create sparse matrix. L ≈ ∇² is symmetric negative semi-definite with a
+    # constant nullspace; the singularity is handled in solve_poisson_iterative
+    # by projecting the rhs/solution onto the zero-mean subspace (no ill-
+    # conditioning hack like pinning a diagonal entry to a huge value).
     L = sparse(I, J, V, n_total, n_total)
-    
-    # Make matrix non-singular by fixing one point (remove null space)
-    # Set reference point to zero: L[1,1] += large_value, rhs[1] = 0
-    L[1,1] += 1e12
-    
     return L
 end
 
 """
-    solve_poisson_iterative(L, rhs, method, max_iter, tol)
+    _spherical_cell_weights(grid) -> Vector
 
-Solve Poisson equation ∇²φ = rhs using iterative methods.
+Lumped cell-area weights Dⱼ = a² cosφⱼ Δcⱼ (column-major over (j,i)). The collocated
+spherical Laplacian `L` is NON-symmetric (the 1/cosφ row factor), so a CG/AMG solver
+cannot be applied to it directly. Multiplying by `Diagonal(D)` gives the SYMMETRIC
+stiffness `S = D·L`, self-adjoint in the cosφ area inner product.
 """
-function solve_poisson_iterative(L::SparseMatrixCSC, rhs::Vector, method::Symbol, 
-                                max_iter::Int, tol::Real)
-    # Remove mean from RHS (compatibility condition for Neumann problems)
-    rhs_centered = rhs .- mean(rhs)
-    
-    # Fix reference point
-    rhs_centered[1] = 0.0
-    
-    # Choose iterative solver
-    if method == :cg
-        sol, history = cg(L, rhs_centered; maxiter=max_iter, tol=tol, log=true)
-    elseif method == :gmres
-        sol, history = gmres(L, rhs_centered; maxiter=max_iter, tol=tol, log=true)
-    elseif method == :bicgstabl
-        sol, history = bicgstabl(L, rhs_centered; maxiter=max_iter, tol=tol, log=true)
-    else
-        error("Unknown method: $method. Use :cg, :gmres, or :bicgstabl")
+function _spherical_cell_weights(grid::SphericalGrid)
+    ϕ = grid.lat
+    ny = length(ϕ); nx = length(grid.lon)
+    a = grid.a
+    Dj = Vector{Float64}(undef, ny)
+    for j in 1:ny
+        Δc = j == 1 ? (ϕ[2]-ϕ[1]) : (j == ny ? (ϕ[ny]-ϕ[ny-1]) : (ϕ[j+1]-ϕ[j-1])/2)
+        Dj[j] = a^2 * cos(ϕ[j]) * Δc
     end
-    
+    D = Vector{Float64}(undef, ny*nx)
+    @inbounds for i in 1:nx, j in 1:ny
+        D[(i-1)*ny + j] = Dj[j]
+    end
+    return D
+end
+
+"""
+    poisson_sphere_solve_iterative(rhs::Field; maxiter=500, reltol=1e-10) -> Field
+
+Solve ∇²φ = rhs on a `SphericalGrid` with an algebraic-multigrid-preconditioned CG
+iteration. Because the collocated lat-lon Laplacian is non-symmetric, the solve is
+performed on the symmetric stiffness `S = D·L` (D = cell-area weights), with one
+reference point pinned to remove the constant nullspace. AMG gives essentially
+grid-size-independent iteration counts — the large-scale counterpart of the direct
+`poisson_sphere_solve`.
+"""
+function poisson_sphere_solve_iterative(rhs::Field{T,G}; maxiter::Int=500,
+                                        reltol::Real=1e-10) where {T<:Real,G<:SphericalGrid}
+    grid = rhs.grid
+    ny = length(grid.lat); nx = length(grid.lon)
+    n = ny * nx
+    L = build_spherical_laplacian(grid)
+    D = _spherical_cell_weights(grid)
+    # Symmetric positive-definite system on the zero-mean, reference-pinned subspace.
+    b = vec(Float64.(rhs.data)); b .-= mean(b)
+    M = -(Diagonal(D) * L)
+    r = -(D .* b)
+    keep = 2:n                                   # pin φ[1] = 0 ⇒ non-singular
+    Mk = M[keep, keep]
+    Pl = aspreconditioner(ruge_stuben(Mk))
+    sol, history = cg(Mk, r[keep]; Pl=Pl, maxiter=maxiter, reltol=reltol, log=true)
     if !history.isconverged
-        @warn "Iterative solver did not converge. Residual: $(history.residuals[end])"
+        @warn "AMG-CG Poisson solve did not converge. Residual: $(history[:resnorm][end])"
     end
-    
-    # Remove mean from solution
-    return sol .- mean(sol)
+    φ = zeros(Float64, n)
+    φ[keep] .= sol
+    φ .-= mean(φ)
+    return Field(reshape(φ, ny, nx), grid)
 end
 
 """

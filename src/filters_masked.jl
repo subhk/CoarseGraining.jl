@@ -18,8 +18,8 @@ function coarse_grain_masked(field::Field{T,G}, kernel::Kernel, mask::BitArray{2
     K = kernel.weights
     ry, rx = kernel.radius_y, kernel.radius_x
     out = similar(A)
-    periodic_x = getfield(field.grid, :periodic_x)
-    periodic_y = getfield(field.grid, :periodic_y)
+    periodic_x = _periodic_x(field.grid)
+    periodic_y = _periodic_y(field.grid)
     @inbounds for j in 1:ny
         for i in 1:nx
             acc = 0.0
@@ -82,8 +82,8 @@ function coarse_grain_gaussian_separable_masked(field::Field{T,G}, σx::Real, σ
     tmp = similar(A)
     tmpmask = similar(mask)
     out = similar(A)
-    periodic_x = getfield(field.grid, :periodic_x)
-    periodic_y = getfield(field.grid, :periodic_y)
+    periodic_x = _periodic_x(field.grid)
+    periodic_y = _periodic_y(field.grid)
     # X pass
     if threaded
         Threads.@threads for j in 1:ny

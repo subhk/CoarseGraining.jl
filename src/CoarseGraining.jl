@@ -23,6 +23,9 @@ include("diagnostics_extra.jl")
 include("model_io.jl")
 include("curvilinear.jl")
 include("regrid.jl")
+include("driver.jl")
+include("postprocess.jl")
+include("structure_functions.jl")
 
 # Central exports grouped by file for clarity
 
@@ -33,7 +36,7 @@ export Grid, Field, Kernel, SphericalGrid, CurvilinearGrid
 export gaussian_kernel, boxcar_kernel
 
 # filters.jl
-export coarse_grain, coarse_grain_fft, coarse_grain_gaussian_separable, select_tile
+export coarse_grain, coarse_grain_sphere, coarse_grain_fft, coarse_grain_gaussian_separable, select_tile
 export coarse_grain_butterworth, coarse_grain_butterworth_length, coarse_grain_butterworth_cycles,
        coarse_grain_butterworth_cells, coarse_grain_butterworth_nyquist
 export coarse_grain_butterworth_dsp, coarse_grain_butterworth_length_dsp, coarse_grain_butterworth_cycles_dsp,
@@ -93,6 +96,17 @@ export gradient_curvilinear
 
 # regrid.jl
 export regrid_index_bilinear, regrid_lonlat_nearest
+
+# driver.jl (3D/4D + NetCDF + multi-scale)
+export map_horizontal, coarse_grain_4d, coarse_grain_netcdf, coarse_grain_scales
+
+# postprocess.jl (streaming accumulators)
+export RegionAccumulator, HistogramAccumulator, RunningMean, update!, results, cell_area_weights
+
+# structure_functions.jl
+export structure_function, velocity_structure_function, spectrum_from_sf2, sf2_from_spectrum,
+       advective_structure_function, spectral_flux,
+       structure_function_sphere, velocity_structure_function_sphere
 
 # utilities
 export mean

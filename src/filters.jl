@@ -1,8 +1,8 @@
-using ..CoarseGraining: Grid, Field, Kernel
+using ..CoarseGraining: Grid, Field, Kernel, SphericalGrid
 using DSP
 import Base.Threads
 
-export coarse_grain, coarse_grain_fft, coarse_grain_gaussian_separable, select_tile,
+export coarse_grain, coarse_grain_sphere, coarse_grain_fft, coarse_grain_gaussian_separable, select_tile,
        coarse_grain_butterworth, coarse_grain_butterworth_length,
        coarse_grain_butterworth_cycles, coarse_grain_butterworth_cells, coarse_grain_butterworth_nyquist
 
@@ -209,9 +209,9 @@ function coarse_grain(field::Field{T,G}, kernel::Kernel; threaded::Bool=false, t
                     @inbounds for j in j0:j1, i in i0:i1
                         acc = 0.0
                         @inbounds for ky in -ry:ry
-                            jj = padidx(j+ky, ny, field.grid.periodic_y)
+                            jj = padidx(j+ky, ny, _periodic_y(field.grid))
                             @inbounds for kx in -rx:rx
-                                ii = padidx(i+kx, nx, field.grid.periodic_x)
+                                ii = padidx(i+kx, nx, _periodic_x(field.grid))
                                 acc += K[ky+ry+1, kx+rx+1] * float(A[jj, ii])
                             end
                         end
@@ -227,9 +227,9 @@ function coarse_grain(field::Field{T,G}, kernel::Kernel; threaded::Bool=false, t
                     @inbounds for j in j0:j1, i in i0:i1
                         acc = 0.0
                         @inbounds for ky in -ry:ry
-                            jj = padidx(j+ky, ny, field.grid.periodic_y)
+                            jj = padidx(j+ky, ny, _periodic_y(field.grid))
                             @inbounds for kx in -rx:rx
-                                ii = padidx(i+kx, nx, field.grid.periodic_x)
+                                ii = padidx(i+kx, nx, _periodic_x(field.grid))
                                 acc += K[ky+ry+1, kx+rx+1] * float(A[jj, ii])
                             end
                         end
@@ -244,9 +244,9 @@ function coarse_grain(field::Field{T,G}, kernel::Kernel; threaded::Bool=false, t
                 @inbounds for i in 1:nx
                     acc = 0.0
                     @inbounds for ky in -ry:ry
-                        jj = padidx(j+ky, ny, field.grid.periodic_y)
+                        jj = padidx(j+ky, ny, _periodic_y(field.grid))
                         @inbounds for kx in -rx:rx
-                            ii = padidx(i+kx, nx, field.grid.periodic_x)
+                            ii = padidx(i+kx, nx, _periodic_x(field.grid))
                             acc += K[ky+ry+1, kx+rx+1] * float(A[jj, ii])
                         end
                     end
@@ -258,9 +258,9 @@ function coarse_grain(field::Field{T,G}, kernel::Kernel; threaded::Bool=false, t
                 @inbounds for i in 1:nx
                     acc = 0.0
                     @inbounds for ky in -ry:ry
-                        jj = padidx(j+ky, ny, field.grid.periodic_y)
+                        jj = padidx(j+ky, ny, _periodic_y(field.grid))
                         @inbounds for kx in -rx:rx
-                            ii = padidx(i+kx, nx, field.grid.periodic_x)
+                            ii = padidx(i+kx, nx, _periodic_x(field.grid))
                             acc += K[ky+ry+1, kx+rx+1] * float(A[jj, ii])
                         end
                     end
@@ -270,6 +270,133 @@ function coarse_grain(field::Field{T,G}, kernel::Kernel; threaded::Bool=false, t
         end
     end
     return Field(out, field.grid)
+end
+
+"""
+    coarse_grain(field, L; kernel=:tophat, truncate=3.0, threaded=false, tile=(0,0))
+    coarse_grain(field, Lx, Ly; kernel=:tophat, truncate=3.0, threaded=false, tile=(0,0))
+
+Convenience real-space coarse-graining by filter length `L` (in grid cells),
+selecting the kernel type with `kernel`:
+
+- `:tophat` / `:boxcar` — uniform box average, radius `max(1, round(Int, L/2))`.
+- `:gaussian` — Gaussian with standard deviation `σ = L/2`.
+
+Both use half-width `L/2`, so switching the kernel at the same `L` gives comparable
+smoothing. Defaults to a **top-hat** filter. Builds the kernel and applies the
+real-space `coarse_grain(field, kernel)`; existing methods are unchanged.
+"""
+function coarse_grain(field::Field, Lx::Real, Ly::Real; kernel::Symbol=:tophat,
+                      truncate::Real=3.0, threaded::Bool=false, tile::Tuple{Int,Int}=(0,0))
+    K = _build_kernel(kernel, Lx, Ly, truncate)
+    return coarse_grain(field, K; threaded=threaded, tile=tile)
+end
+
+coarse_grain(field::Field, L::Real; kwargs...) = coarse_grain(field, L, L; kwargs...)
+
+function _build_kernel(kernel::Symbol, Lx::Real, Ly::Real, truncate::Real)
+    if kernel === :tophat || kernel === :boxcar
+        return boxcar_kernel(max(1, round(Int, Lx/2)), max(1, round(Int, Ly/2)))
+    elseif kernel === :gaussian
+        return gaussian_kernel(Lx/2, Ly/2; truncate=truncate)
+    else
+        error("Unknown kernel $kernel; use :tophat, :boxcar, or :gaussian")
+    end
+end
+
+# FlowSieve coarse-graining kernels G(dist; scale), normalised distance D = dist/(scale/2).
+# Matches husseinaluie/FlowSieve Functions/kernel.cpp exactly.
+@inline function _sphere_kernel(D::Real, kerneltype::Symbol)
+    if kerneltype === :tophat || kerneltype === :boxcar
+        return D < 1 ? 1.0 : 0.0
+    elseif kerneltype === :gaussian
+        return exp(-D^2)
+    elseif kerneltype === :hyper_gaussian
+        return exp(-D^4)
+    elseif kerneltype === :smooth_hat
+        return 0.5 * (1 - tanh((D - 1) / 0.1))
+    else
+        error("Unknown sphere kernel :$kerneltype; use :tophat, :gaussian, :hyper_gaussian, or :smooth_hat")
+    end
+end
+# Search radius as a multiple of scale/2 (FlowSieve KernPad): far enough to capture the tail.
+_sphere_kernel_pad(k::Symbol) = (k === :tophat || k === :boxcar) ? 1.1 :
+                                k === :hyper_gaussian ? 2.5 :
+                                k === :smooth_hat ? 2.5 : 5.0
+
+"""
+    coarse_grain_sphere(field::Field{T,SphericalGrid}, ℓ; kernel=:tophat, smooth=false, mask=nothing, fill_value=NaN)
+
+Geometrically-correct coarse-graining on a sphere with FlowSieve's kernels. `ℓ` is the
+filter scale (great-circle **diameter**, units of `grid.a`); the normalised distance is
+`D = dist/(ℓ/2)`. `kernel` selects the shape (matching FlowSieve `kernel.cpp`):
+`:tophat` (`D<1`), `:gaussian` (`exp(−D²)`), `:hyper_gaussian` (`exp(−D⁴)`), `:smooth_hat`
+(`½(1−tanh((D−1)/0.1))`). Each neighbour is weighted by its cell area (∝ cosφ·Δφ_cell)
+— the cosφ pole-convergence correction. The neighbour search radius scales with the
+kernel (FlowSieve `KernPad`). `mask` (true=valid) skips land; `fill_value` where none
+contributes. `smooth=true` is a back-compat alias for `kernel=:smooth_hat`.
+"""
+function coarse_grain_sphere(field::Field{T,G}, ℓ::Real; kernel::Symbol=:tophat, smooth::Bool=false,
+                             mask::Union{BitArray{2},Nothing}=nothing,
+                             fill_value=NaN) where {T<:Real,G<:SphericalGrid}
+    kerneltype = (smooth && kernel === :tophat) ? :smooth_hat : kernel
+    grid = field.grid
+    A = field.data
+    ny = length(grid.lat); nx = length(grid.lon)
+    @assert size(A) == (ny, nx)
+    mask === nothing || @assert size(mask) == (ny, nx)
+    a = grid.a
+    ϕ = grid.lat; λ = grid.lon
+    cosϕ = cos.(ϕ)
+    # Local latitude cell widths (non-uniform aware) for the area weight.
+    Δϕ = Vector{Float64}(undef, ny)
+    @inbounds for j in 1:ny
+        Δϕ[j] = j == 1 ? (ϕ[2]-ϕ[1]) : (j == ny ? (ϕ[ny]-ϕ[ny-1]) : (ϕ[j+1]-ϕ[j-1])/2)
+    end
+    dλ = nx > 1 ? (λ[end]-λ[1])/(nx-1) : 1.0
+    rad = ℓ / 2                      # great-circle radius (kernel half-width)
+    pad = _sphere_kernel_pad(kerneltype)
+    αr  = (rad * pad) / a            # search angular radius (FlowSieve KernPad)
+    periodic = grid.periodic_lon
+    out = similar(A)
+    @inbounds for j in 1:ny
+        ϕj = ϕ[j]
+        # Latitude index window: |ϕ[jj]-ϕj| ≤ αr
+        jmin = j; while jmin > 1 && (ϕj - ϕ[jmin-1]) <= αr; jmin -= 1; end
+        jmax = j; while jmax < ny && (ϕ[jmax+1] - ϕj) <= αr; jmax += 1; end
+        # Longitude half-extent in cells (wider near poles), capped to half the circle.
+        cj = max(cosϕ[j], 1e-6)
+        iext = min(nx ÷ 2, ceil(Int, αr / (cj * dλ)) + 1)
+        for i in 1:nx
+            if mask !== nothing && !mask[j, i]
+                out[j, i] = T(fill_value); continue
+            end
+            λi = λ[i]
+            acc = 0.0; wsum = 0.0
+            for jj in jmin:jmax
+                area = cosϕ[jj] * Δϕ[jj]
+                for dii in -iext:iext
+                    ii0 = i + dii
+                    if 1 <= ii0 <= nx
+                        ii = ii0
+                    elseif periodic
+                        ii = mod(ii0 - 1, nx) + 1
+                    else
+                        continue
+                    end
+                    (mask !== nothing && !mask[jj, ii]) && continue
+                    dist = grid_distance(grid, ϕj, λi, ϕ[jj], λ[ii])
+                    w = _sphere_kernel(dist / rad, kerneltype)
+                    w == 0.0 && continue
+                    wgt = w * area
+                    acc += wgt * float(A[jj, ii])
+                    wsum += wgt
+                end
+            end
+            out[j, i] = wsum > 0 ? T(acc / wsum) : T(fill_value)
+        end
+    end
+    return Field(out, grid)
 end
 
 function coarse_grain_fft(field::Field{T,G}, σx::Real, σy::Real) where {T<:Real,G}
@@ -427,7 +554,7 @@ function coarse_grain_gaussian_separable(field::Field{T,G}, σx::Real, σy::Real
             @inbounds for i in 1:nx
                 acc = 0.0
                 @inbounds @simd for s in -rx:rx
-                    ii = padidx(i+s, nx, field.grid.periodic_x)
+                    ii = padidx(i+s, nx, _periodic_x(field.grid))
                     acc += kx[s+rx+1] * A[j, ii]
                 end
                 tmp[j,i] = acc
@@ -438,7 +565,7 @@ function coarse_grain_gaussian_separable(field::Field{T,G}, σx::Real, σy::Real
             @inbounds for i in 1:nx
                 acc = 0.0
                 @inbounds @simd for s in -rx:rx
-                    ii = padidx(i+s, nx, field.grid.periodic_x)
+                    ii = padidx(i+s, nx, _periodic_x(field.grid))
                     acc += kx[s+rx+1] * A[j, ii]
                 end
                 tmp[j,i] = acc
@@ -452,7 +579,7 @@ function coarse_grain_gaussian_separable(field::Field{T,G}, σx::Real, σy::Real
             @inbounds for j in 1:ny
                 acc = 0.0
                 @inbounds @simd for t in -ry:ry
-                    jj = padidx(j+t, ny, field.grid.periodic_y)
+                    jj = padidx(j+t, ny, _periodic_y(field.grid))
                     acc += ky[t+ry+1] * tmp[jj, i]
                 end
                 out[j,i] = acc
@@ -463,7 +590,7 @@ function coarse_grain_gaussian_separable(field::Field{T,G}, σx::Real, σy::Real
             @inbounds for j in 1:ny
                 acc = 0.0
                 @inbounds @simd for t in -ry:ry
-                    jj = padidx(j+t, ny, field.grid.periodic_y)
+                    jj = padidx(j+t, ny, _periodic_y(field.grid))
                     acc += ky[t+ry+1] * tmp[jj, i]
                 end
                 out[j,i] = acc

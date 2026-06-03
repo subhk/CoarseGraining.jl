@@ -36,3 +36,13 @@ struct CurvilinearGrid
     periodic_y::Bool
     a::Float64              # sphere radius
 end
+
+# Periodicity accessors that work uniformly across grid types. The x/second axis
+# (columns) is longitude; the y/first axis (rows) is latitude, which is never
+# periodic on a SphericalGrid. Used by the real-space filters so they accept any grid.
+_periodic_x(g::Grid) = g.periodic_x
+_periodic_y(g::Grid) = g.periodic_y
+_periodic_x(g::SphericalGrid) = g.periodic_lon
+_periodic_y(g::SphericalGrid) = false
+_periodic_x(g::CurvilinearGrid) = g.periodic_x
+_periodic_y(g::CurvilinearGrid) = g.periodic_y

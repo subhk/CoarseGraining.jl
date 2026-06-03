@@ -1,6 +1,7 @@
 using ..CoarseGraining: Field, Grid, SphericalGrid, CurvilinearGrid
 using Interpolations
 using NCDatasets
+using Dates: now
 
 export coarsen_field, refine_field, create_multiresolution_hierarchy,
        hierarchical_helmholtz_workflow, save_multiresolution_data,
@@ -179,6 +180,9 @@ function hierarchical_helmholtz_workflow(u::Field{T,G}, v::Field{T,G};
     for level in 2:length(grids)
         u_coarse = coarsen_field(u_hierarchy[level-1], coarsening_factor; method=:area_average)
         v_coarse = coarsen_field(v_hierarchy[level-1], coarsening_factor; method=:area_average)
+        # u and v are coarsened independently and would get distinct (but equal)
+        # grid objects; share one so downstream `grid === vN.grid` checks pass.
+        v_coarse = Field(v_coarse.data, u_coarse.grid)
         push!(u_hierarchy, u_coarse)
         push!(v_hierarchy, v_coarse)
     end
@@ -272,16 +276,16 @@ function save_multiresolution_data(filename::String, fields::Vector{Field{T,G}},
             var[:, :] = field.data
             
             # Save grid information as attributes
-            attput(var, "grid_type", string(typeof(grid)))
+            var.attrib["grid_type"] = string(typeof(grid))
             
             if grid isa Grid
-                attput(var, "dx", grid.dx)
-                attput(var, "dy", grid.dy)
-                attput(var, "periodic_x", grid.periodic_x)
-                attput(var, "periodic_y", grid.periodic_y)
+                var.attrib["dx"] = grid.dx
+                var.attrib["dy"] = grid.dy
+                var.attrib["periodic_x"] = grid.periodic_x
+                var.attrib["periodic_y"] = grid.periodic_y
             elseif grid isa SphericalGrid
-                attput(var, "a", grid.a)
-                attput(var, "periodic_lon", grid.periodic_lon)
+                var.attrib["a"] = grid.a
+                var.attrib["periodic_lon"] = grid.periodic_lon
                 
                 # Save coordinate arrays
                 lat_var = defVar(grp, "$(level_name)_lat", Float64, ("$(level_name)_y",))
@@ -292,8 +296,8 @@ function save_multiresolution_data(filename::String, fields::Vector{Field{T,G}},
         end
         
         # Save metadata
-        attput(grp, "num_levels", length(grids))
-        attput(grp, "creation_time", string(now()))
+        grp.attrib["num_levels"] = length(grids)
+        grp.attrib["creation_time"] = string(now())
         
     finally
         close(ds)
@@ -315,7 +319,7 @@ function load_multiresolution_data(filename::String; group_name::String="multire
     
     try
         grp = ds.group[group_name]
-        num_levels = attget(grp, "num_levels")
+        num_levels = grp.attrib["num_levels"]
         
         for level in 1:num_levels
             level_name = "level_$level"
@@ -324,20 +328,20 @@ function load_multiresolution_data(filename::String; group_name::String="multire
             data = Array(grp[level_name])
             
             # Reconstruct grid
-            grid_type = attget(grp[level_name], "grid_type")
+            grid_type = grp[level_name].attrib["grid_type"]
             
             if grid_type == "Grid"
-                dx = attget(grp[level_name], "dx")
-                dy = attget(grp[level_name], "dy")
-                periodic_x = attget(grp[level_name], "periodic_x")
-                periodic_y = attget(grp[level_name], "periodic_y")
+                dx = grp[level_name].attrib["dx"]
+                dy = grp[level_name].attrib["dy"]
+                periodic_x = grp[level_name].attrib["periodic_x"]
+                periodic_y = grp[level_name].attrib["periodic_y"]
                 ny, nx = size(data)
                 
                 grid = Grid(nx, ny, dx, dy, periodic_x, periodic_y)
                 
             elseif grid_type == "SphericalGrid"
-                a = attget(grp[level_name], "a")
-                periodic_lon = attget(grp[level_name], "periodic_lon")
+                a = grp[level_name].attrib["a"]
+                periodic_lon = grp[level_name].attrib["periodic_lon"]
                 lat = Array(grp["$(level_name)_lat"])
                 lon = Array(grp["$(level_name)_lon"])
                 
@@ -453,7 +457,7 @@ function interpolate_bilinear(data::Array{T,2}, source_coords, target_coords) wh
     result = zeros(T, ny_target, nx_target)
     
     # Create interpolation object
-    itp = LinearInterpolation((source_y, source_x), data, extrapolation_bc=Line())
+    itp = linear_interpolation((source_y, source_x), data, extrapolation_bc=Line())
     
     for j in 1:ny_target
         for i in 1:nx_target
